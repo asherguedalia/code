@@ -20,8 +20,8 @@ def test_task3(debug=False):
     test_term_parse(debug)
 
 def test_task4(debug=False):
-    test_formula_parse_prefix(debug)
-    #test_formula_parse(debug)
+    #test_formula_parse_prefix(debug)
+    test_formula_parse(debug)
 
 def test_task5(debug=False):
     test_term_constants(debug)

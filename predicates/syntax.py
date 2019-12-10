@@ -593,6 +593,7 @@ class Formula:
             A formula whose standard string representation is the given string.
         """
         # Task 7.4.2
+        return Formula.parse_prefix(s)[0]
 
     def constants(self) -> Set[str]:
         """Finds all constant names in the current formula.
