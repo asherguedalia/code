@@ -477,7 +477,7 @@ class Formula:
         """
         # Task 7.4.1
         # checking if this git thing works
-        print('hi there')
+        # does this work
 
     @staticmethod
     def parse(s: str) -> Formula:
