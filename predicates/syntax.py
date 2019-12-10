@@ -476,9 +476,111 @@ class Formula:
             name (and not just a part of it, such as ``'x1'``).
         """
         # Task 7.4.1
-        # checking if this git thing works
-        # does this work
-        # i think it does
+        if len(s) == 0:
+            raise Exception('Cannot Parse Empty String!')
+        if is_constant(s[0]) or is_variable(s[0]) or is_function(s[0]):
+            # so we start with a term
+            # assuming it has to be a term=term
+            t1, r = Term.parse_prefix(s)
+            assert r[0] == '='
+            t2, r = Term.parse_prefix(r[1:])
+            return Formula(root='=', arguments_or_first_or_variable=[t1, t2]), r
+
+        if is_relation(s[0]):
+            # get name of relation
+            i = 1
+            for i in range(1, len(s)):
+                if not s[i].isalnum():
+                    i -= 1
+                    break
+            relation_name = s[:i+1]
+            # now parse all arguments separately
+            args = []
+            assert s[i + 1] == '('
+
+            if s[i+2] == ')':
+                # so there are no arguments
+                return Formula(root=relation_name, arguments_or_first_or_variable=[]), s[i+3:]
+
+            rest = ',' + s[i + 2:]
+            while rest[0] == ',':  # should end when we reach ')' instead of ','
+                cur_arg, rest = Term.parse_prefix(rest[1:])
+                args.append(cur_arg)
+
+            assert rest[0] == ')'
+            assert len(args) > 0
+
+            return Formula(root=relation_name, arguments_or_first_or_variable=args), rest[1:]
+
+        if is_unary(s[0]):
+            first, r = Formula.parse_prefix(s[1:])
+            return Formula(root=s[0], arguments_or_first_or_variable=first), r
+
+        if s[0] == '(':
+            # so we need to expect some binary operator in the middle
+            # look for a closing one
+            counter = 1
+            for i in range(1, len(s)):
+                if s[i] == ')':
+                    counter -= 1
+                    if counter < 0:
+                            raise Exception('too many closing brackets')
+                    if counter == 0:
+                        # so this is the one that closes what we opened
+                        remainder = s[i + 1:]
+
+                        p1, r1 = Formula.parse_prefix(s[1:i])  # take whats inside but expect a binary op
+                        # we want to parse all what was in the brackets so continue parsing until r is ''
+                        if len(r1) > 0 and is_binary(r1[0]):  # so binary op of len 1
+                            j = 1
+                        elif len(r1) > 1 and is_binary(r1[0:2]):  # so binary op of len 2
+                            j = 2
+                        elif len(r1) > 2 and is_binary(r1[0:3]):  # so binary op of len 3
+                            j = 3
+                        else:
+                            raise Exception('we need to see a binary op if we saw brackets')
+
+                        # so it is the root and we parse the second half
+                        p2, r2 = Formula.parse_prefix(r1[j:])
+                        # now if len(r) > 0 its illegal cuz we had a binary operator
+                        if len(r2) > 0 or p2 is None:
+                            raise Exception('Illegal, we saw a binary op or illegal inside formula')
+
+                        new_formula = Formula(root=r1[0:j], arguments_or_first_or_variable=p1, second_or_predicate=p2)
+                        return new_formula, remainder
+
+                if s[i] == '(':
+                    counter += 1
+            raise Exception('Illegal Brackets boyy')
+
+        if is_quantifier(s[0]):
+            quant = s[0]
+            assert '[' in s[1:]
+            split_str = s[1:].split('[')
+            t1, rem = Term.parse_prefix(split_str[0])
+            assert len(rem) == 0
+            var = str(t1)
+            assert is_variable(var)
+
+
+            # now we have a something like ....] we need to fins the matching bracket
+            cur_s = s[1+len(var)+1:]  # this is the string ...]
+            counter = 1
+            for i in range(len(cur_s)):
+                if cur_s[i] == ']':
+                    counter -= 1
+                    if counter == 0:
+                        # so we found our matching bracket
+                        fi, extra = Formula.parse_prefix(cur_s[:i])
+                        assert len(extra) == 0
+                        return Formula(root=quant, arguments_or_first_or_variable=var, second_or_predicate=fi), cur_s[i+1:]
+                if cur_s[i] == '[':
+                    counter += 1
+
+            raise Exception('bad input in square brackets')
+
+
+        raise Exception('Who Are You???')
 
     @staticmethod
     def parse(s: str) -> Formula:
