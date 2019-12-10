@@ -478,6 +478,7 @@ class Formula:
         # Task 7.4.1
         # checking if this git thing works
         # does this work
+        # i think it does
 
     @staticmethod
     def parse(s: str) -> Formula:
