@@ -211,6 +211,17 @@ class Term:
             A set of all constant names used in the current term.
         """
         # Task 7.5.1
+        # add root if is constant
+        constants = set()
+        if is_constant(self.root):
+            constants.add(self.root)
+        # add all sub-terms' constants
+        try:
+            for term in self.arguments:
+                constants.update(term.constants())
+            return constants
+        except AttributeError:
+            return constants
 
     def variables(self) -> Set[str]:
         """Finds all variable names in the current term.
@@ -219,6 +230,17 @@ class Term:
             A set of all variable names used in the current term.
         """
         # Task 7.5.2
+        # get root if it's a variable
+        variables = set()
+        if is_variable(self.root):
+            variables.add(self.root)
+        # get all sub-terms' variables
+        try:
+            for term in self.arguments:
+                variables.update(term.variables())
+            return variables
+        except AttributeError:
+            return variables
 
     def functions(self) -> Set[Tuple[str, int]]:
         """Finds all function names in the current term, along with their
@@ -229,6 +251,19 @@ class Term:
             all function names used in the current term.
         """
         # Task 7.5.3
+        # add root if it is a function
+        funcs = set()
+        if is_function(self.root):
+            name = self.root
+            arity = len(self.arguments)
+            funcs.add((name, arity))
+        # add all sub-terms' functions
+        try:
+            for term in self.arguments:
+                funcs.update(term.functions())
+            return funcs
+        except AttributeError:
+            return funcs
 
     def substitute(self, substitution_map: Mapping[str, Term],
                    forbidden_variables: AbstractSet[str] = frozenset()) -> Term:
@@ -602,6 +637,21 @@ class Formula:
             A set of all constant names used in the current formula.
         """
         # Task 7.6.1
+        constants = set()
+        # if relation or equality --> return all arguments' constants
+        if is_relation(self.root) or is_equality(self.root):
+            for a in self.arguments:
+                constants.update(a.constants())
+            return constants
+        # if quantifier --> return predicate's constants
+        if is_quantifier(self.root):
+            return self.predicate.constants()
+        # if unary --> return first's constants
+        if is_unary(self.root):
+            return self.first.constants()
+        # if binary --> return union of first's and second's constants
+        if is_binary(self.root):
+            return self.first.constants().union(self.second.constants())
 
     def variables(self) -> Set[str]:
         """Finds all variable names in the current formula.
@@ -610,6 +660,23 @@ class Formula:
             A set of all variable names used in the current formula.
         """
         # Task 7.6.2
+        variables = set()
+        # if relation or equality --> return all arguments' variables
+        if is_relation(self.root) or is_equality(self.root):
+            for a in self.arguments:
+                variables.update(a.variables())
+            return variables
+        # if quantifier --> return variable union predicate's-variables
+        if is_quantifier(self.root):
+            variables.add(self.variable)
+            variables.update(self.predicate.variables())
+            return variables
+        # if unary --> return first's variables
+        if is_unary(self.root):
+            return self.first.variables()
+        # if binary --> return union of first's and second's variables
+        if is_binary(self.root):
+            return self.first.variables().union(self.second.variables())
 
     def free_variables(self) -> Set[str]:
         """Finds all variable names that are free in the current formula.
@@ -619,6 +686,21 @@ class Formula:
             within a scope of a quantification on those variable names.
         """
         # Task 7.6.3
+        variables = set()
+        # if relation or equality --> return all arguments' variables
+        if is_relation(self.root) or is_equality(self.root):
+            for a in self.arguments:
+                variables.update(a.variables())
+            return variables
+        # if quantifier --> return predicate's free-variables w/o variable
+        if is_quantifier(self.root):
+            return self.predicate.free_variables() - set(self.variable)
+        # if unary --> return first's free variables
+        if is_unary(self.root):
+            return self.first.free_variables()
+        # if binary --> return union of first's and second's free variables
+        if is_binary(self.root):
+            return self.first.free_variables().union(self.second.free_variables())
 
     def functions(self) -> Set[Tuple[str, int]]:
         """Finds all function names in the current formula, along with their
@@ -629,6 +711,29 @@ class Formula:
             all function names used in the current formula.
         """
         # Task 7.6.4
+        funcs = set()
+        # if relation --> return this function and all arguments' functions
+        if is_relation(self.root):
+            if is_function(self.root):
+                funcs.add((self.root, len(self.arguments)))
+            for a in self.arguments:
+                funcs.update((a.functions()))
+            return funcs
+        # if equality --> return all arguments' functions
+        if is_equality(self.root):
+            for a in self.arguments:
+                funcs.update((a.functions()))
+            return funcs
+        # if quantifier --> return predicate's functions
+        if is_quantifier(self.root):
+            return self.predicate.functions()
+        # if unary --> return first's functions
+        if is_unary(self.root):
+            return self.first.functions()
+        # if binary --> return union of first's and second's functions
+        if is_binary(self.root):
+            return self.first.functions().union(self.second.functions())
+
 
     def relations(self) -> Set[Tuple[str, int]]:
         """Finds all relation names in the current formula, along with their
@@ -639,6 +744,23 @@ class Formula:
             all relation names used in the current formula.
         """
         # Task 7.6.5
+        relations = set()
+        # if relation --> return this relation
+        if is_relation(self.root):
+            relations.add((self.root, len(self.arguments)))
+            return relations
+        # if equality --> return empty set
+        if is_equality(self.root):
+            return set()
+        # if quantifier --> return predicate's relations
+        if is_quantifier(self.root):
+            return self.predicate.relations()
+        # if unary --> return first's relations
+        if is_unary(self.root):
+            return self.first.relations()
+        # if binary --> return union of first's and second's relations
+        if is_binary(self.root):
+            return self.first.relations().union(self.second.relations())
 
     def substitute(self, substitution_map: Mapping[str, Term],
                    forbidden_variables: AbstractSet[str] = frozenset()) -> \
