@@ -4,11 +4,9 @@
 # File name: predicates/semantics.py
 
 """Semantic analysis of first-order logic constructs."""
-
+from itertools import product
 from typing import AbstractSet, FrozenSet, Generic, Mapping, Tuple, TypeVar
 
-#todo- change this back to without the code?
-#from code.predicates.syntax import *
 from predicates.syntax import *
 
 from logic_utils import frozen, frozendict
@@ -156,7 +154,6 @@ class Model(Generic[T]):
             f = self.function_meanings[term.root]
             return f[evaluated_args]
 
-
         raise Exception('Not supposed to be here')
 
 
@@ -188,6 +185,39 @@ class Model(Generic[T]):
             assert relation in self.relation_meanings and \
                    self.relation_arities[relation] in {-1, arity}
         # Task 7.8
+        if is_equality(formula.root):
+            return self.evaluate_term(formula.arguments[0], assignment) == \
+                   self.evaluate_term(formula.arguments[1], assignment)
+        if is_relation(formula.root):
+            # evaluate all arg terms and return relation evaluation
+            evaluated_args = tuple([self.evaluate_term(t, assignment) for t in formula.arguments])  # empty tuple if no args
+            return evaluated_args in self.relation_meanings[formula.root]
+        if is_unary(formula.root):
+            return not self.evaluate_formula(formula.first, assignment)
+        if is_binary(formula.root):
+            if formula.root == '&':
+                return self.evaluate_formula(formula.first, assignment) and \
+                       self.evaluate_formula(formula.second, assignment)
+            if formula.root == '|':
+                return self.evaluate_formula(formula.first, assignment) or \
+                       self.evaluate_formula(formula.second, assignment)
+            if formula.root == '->':
+                return not self.evaluate_formula(formula.first, assignment) or \
+                       self.evaluate_formula(formula.second, assignment)
+        if is_quantifier(formula.root):
+            all_evaluations = []
+            for x in self.universe:
+                new_assignment = dict(assignment)
+                new_assignment[formula.variable] = x
+                all_evaluations.append(self.evaluate_formula(formula.predicate, new_assignment))
+
+            if formula.root == 'A':
+                return all(all_evaluations)
+
+            else:
+                return any(all_evaluations)
+
+        raise Exception('why are you here???')
 
     def is_model_of(self, formulas: AbstractSet[Formula]) -> bool:
         """Checks if the current model is a model for the given formulas.
@@ -207,3 +237,22 @@ class Model(Generic[T]):
                 assert relation in self.relation_meanings and \
                        self.relation_arities[relation] in {-1, arity}
         # Task 7.9
+        # all formulas need to be true for all possible assignments
+
+        formula_evaluations = []
+        for formula in formulas:
+            # create assignment mappings: dict[key=name of var] = value = some val from the universe
+            free_vars = list(formula.free_variables())
+            combos = product(self.universe, repeat=len(free_vars))
+            combo_evaluations = []
+            for combo in combos:
+                cur_assignment = {free_vars[i]: combo[i] for i in range(len(free_vars))}
+                combo_evaluations.append(self.evaluate_formula(formula, cur_assignment))
+            if not all(combo_evaluations):
+                return False
+        return True
+
+
+
+
+
