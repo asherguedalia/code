@@ -7,6 +7,8 @@
 
 from typing import AbstractSet, FrozenSet, Generic, Mapping, Tuple, TypeVar
 
+#todo- change this back to without the code?
+#from code.predicates.syntax import *
 from predicates.syntax import *
 
 from logic_utils import frozen, frozendict
@@ -144,6 +146,20 @@ class Model(Generic[T]):
             assert function in self.function_meanings and \
                    self.function_arities[function] == arity
         # Task 7.7
+        if is_constant(term.root):
+            return self.constant_meanings[term.root]
+        if is_variable(term.root):
+            return assignment[term.root]
+        if is_function(term.root):
+            # so evaluate each term recursively and return function evaluation of all
+            evaluated_args = tuple([self.evaluate_term(t, assignment) for t in term.arguments])
+            f = self.function_meanings[term.root]
+            return f[evaluated_args]
+
+
+        raise Exception('Not supposed to be here')
+
+
 
     def evaluate_formula(self, formula: Formula,
                          assignment: Mapping[str, T] = frozendict()) -> bool:
