@@ -70,7 +70,6 @@ def replace_functions_with_relations_in_model(model: Model[T]) -> Model[T]:
     # init stuff that we'll keep
     universe = model.universe
     constant_meanings = model.constant_meanings
-    # relation_arities = dict(model.relation_arities)
     relation_meanings = dict(model.relation_meanings)
     # foreach functions: convert to corresponding relation, add to relation meanings and arities
     for func_name, func_meanings in model.function_meanings.items():
@@ -108,6 +107,39 @@ def replace_relations_with_functions_in_model(model: Model[T],
         assert function_name_to_relation_name(function) in \
                model.relation_meanings
     # Task 8.2
+        # init stuff that we'll keep
+        universe = model.universe
+        constant_meanings = model.constant_meanings
+        relation_meanings = dict()
+        function_meanings = dict()
+        # foreach relation in old model's relations...
+        for relation_name, relation_meaning in model.relation_meanings.items():
+            # if original_functions doesnt have cor function: add to relations
+            name_as_function = relation_name_to_function_name(relation_name)
+            if name_as_function not in original_functions:
+                relation_meanings[relation_name] = relation_meaning
+                continue
+            # else create and add cor function instead
+            new_func_dic = dict()
+            if len(relation_meaning) >= 1:
+                cur_meanings = set()
+                i = 0
+                for meaning in relation_meaning:
+                    i += 1
+                    if meaning[1:] not in cur_meanings:
+                        # func(x2, x3, ...) = x1
+                        new_func_dic[meaning[1:]] = meaning[0]
+                        cur_meanings.add(meaning[1:])
+                        continue
+                    # make sure function wont map same input to different values
+                    if new_func_dic[meaning[1:]] != meaning[0]:
+                        return None
+                # make sure all combos in universe are defined for function
+                if i != len(universe)**len(next(iter(new_func_dic))):
+                    return None
+            function_meanings[name_as_function] = new_func_dic
+        return Model(universe, constant_meanings, relation_meanings, function_meanings)
+
 
 
 def compile_term(term: Term) -> List[Formula]:
