@@ -67,6 +67,20 @@ def replace_functions_with_relations_in_model(model: Model[T]) -> Model[T]:
         assert function_name_to_relation_name(function) not in \
                model.relation_meanings
     # Task 8.1
+    # init stuff that we'll keep
+    universe = model.universe
+    constant_meanings = model.constant_meanings
+    # relation_arities = dict(model.relation_arities)
+    relation_meanings = dict(model.relation_meanings)
+    # foreach functions: convert to corresponding relation, add to relation meanings and arities
+    for func_name, func_meanings in model.function_meanings.items():
+        new_relation_name = function_name_to_relation_name(func_name)
+        new_set = set()
+        # foreach meaning of function, add that meaning to cor relation's set
+        for tup, val in func_meanings.items():
+            new_set.add(((val,) + tup))
+        relation_meanings[new_relation_name] = new_set
+    return Model(universe, constant_meanings, relation_meanings, dict())
 
 
 def replace_relations_with_functions_in_model(model: Model[T],
