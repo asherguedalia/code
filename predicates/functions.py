@@ -444,3 +444,34 @@ def make_equality_as_SAME_in_model(model: Model[T]) -> Model[T]:
            model.relation_arities['SAME'] == 2
     assert len(model.function_meanings) == 0
     # Task 8.8
+    # create new universe and learn equivalence classes
+    old_universe = set(model.universe)
+    new_universe = set()
+    equiv_to = dict()
+    # for each val in old universe...
+    while old_universe:
+        # add val to new universe...
+        val = old_universe.pop()
+        new_universe.add(val)
+        # val is in it's own equiv class
+        equiv_to[val] = val
+        # skip over any other_val that is SAME as val, remember other_val is equiv to val
+        for other_val in model.universe:
+            if other_val != val and (other_val, val) in model.relation_meanings['SAME']:
+                old_universe.remove(other_val)
+                equiv_to[other_val] = val
+    # create new_constant_meanings
+    new_constant_meanings = dict()
+    for const, meaning in model.constant_meanings.items():
+        new_constant_meanings[const] = equiv_to[meaning]
+    # foreach relation, update values in meanings according to appropriate equiv class
+    new_relation_meanings = dict()
+    for relation, meanings in model.relation_meanings.items():
+        # ignore 'SAME' relation, obvs
+        if relation == 'SAME':
+            continue
+        new_relation_meanings[relation] = set()
+        for meaning in meanings:
+            new_meaning = tuple(x if x in new_universe else equiv_to[x] for x in meaning)
+            new_relation_meanings[relation].add(new_meaning)
+    return Model(new_universe, new_constant_meanings, new_relation_meanings, model.function_meanings)
