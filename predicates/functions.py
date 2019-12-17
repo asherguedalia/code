@@ -317,6 +317,18 @@ AbstractSet[Formula]) -> \
     return new_formulas
 
 
+def replace_same_helper(formula: Formula):
+    if is_relation(formula.root):
+        return formula
+    if is_equality(formula.root):
+        return Formula('SAME', formula.arguments)
+    if is_unary(formula.root):
+        return Formula(formula.root, replace_same_helper(formula))
+    if is_binary(formula.root):
+        return Formula(formula.root, replace_same_helper(formula.first), replace_same_helper(formula.second))
+    if is_quantifier(formula.root):
+        return Formula(formula.root, formula.variable, replace_same_helper(formula.predicate))
+
 
 def replace_equality_with_SAME_in_formulas(formulas: AbstractSet[Formula]) -> \
         Set[Formula]:
@@ -345,6 +357,44 @@ def replace_equality_with_SAME_in_formulas(formulas: AbstractSet[Formula]) -> \
         assert 'SAME' not in \
                {relation for relation, arity in formula.relations()}
     # Task 8.6
+    same = 'SAME'
+    all_relations_names = reduce(lambda x, y: x | y, [f.relations() for f in formulas])
+    all_formulas = {replace_same_helper(f) for f in formulas}
+
+    # create same properties
+    # reflexive:
+    x = Term('x')
+    y = Term('y')
+    z = Term('z')
+    ref = Formula('A', 'x', Formula(same, [x, x]))
+    sym = Formula('A', 'x', Formula('A', 'y', Formula('->', Formula(same, [x, y]), Formula(same, [y, x]))))
+    f1 = Formula('&', Formula(same, [x,y]), Formula(same, [y,z]))
+    f2 = Formula(same, [x,z])
+    f = Formula('->', f1, f2)
+    trans = Formula('A', 'x', Formula('A', 'y', Formula('A', 'z', f)))
+    all_formulas = all_formulas | {ref, sym, trans}
+
+    # create formula for each relation name
+    for relation_name, args_num in all_relations_names:
+        if args_num == 0:
+            continue
+        var_terms_x = [Term('x' + str(i)) for i in range(args_num)]
+        var_terms_y = [Term('y' + str(i)) for i in range(args_num)]
+
+        left_side = Formula(same, [var_terms_x[0], var_terms_y[0]])
+        for i in range(1, args_num):
+            left_side = Formula('&', Formula(same, [var_terms_x[i], var_terms_y[i]]), left_side)
+        right_side = Formula('->', Formula(relation_name, var_terms_x), Formula(relation_name, var_terms_y))
+        pred = Formula('->', left_side, right_side)
+
+        for i in range(args_num):
+            pred = Formula('A', 'x'+str(i), Formula('A', 'y'+str(i), pred))
+        all_formulas.add(pred)
+
+    return all_formulas
+
+
+
 
 
 def add_SAME_as_equality_in_model(model: Model[T]) -> Model[T]:
