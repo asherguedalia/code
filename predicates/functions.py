@@ -7,7 +7,7 @@
 equality."""
 
 from typing import AbstractSet, List, Set
-
+from functools import reduce
 from logic_utils import fresh_variable_name_generator
 
 from predicates.syntax import *
@@ -287,6 +287,35 @@ AbstractSet[Formula]) -> \
         for variable in formula.variables():
             assert variable[0] != 'z'
     # Task 8.5
+    # until now no one promised that f corresponds to F when we changed functions to relations
+    # it is true that our model handles it the same way which is why it works with our subsituted models (task1, 2) but
+    # now we want it to be true for any model so we add constraints in the form of extra formulas that force the meaning
+    # the function f and the relation F to be equal
+
+    all_function_names = reduce(lambda x, y: x|y, [f.functions() for f in formulas])
+    new_formulas = {replace_functions_with_relations_in_formula(f) for f in formulas}
+
+    for name, args_num in all_function_names:
+        relation_name = function_name_to_relation_name(name)
+        var_terms = [Term('x' + str(i)) for i in range(args_num)]
+        predicate = Formula('E', 'z', Formula(relation_name, [Term('z')]+var_terms))
+        for i in range(args_num):
+            predicate = Formula('A', 'x'+str(i), predicate)
+        new_formulas.add(predicate)
+
+        f1 = Formula('&', Formula(relation_name, [Term('z1')]+var_terms),
+                     Formula(relation_name, [Term('z2')]+var_terms))
+        f2 = Formula('=', [Term('z1'),Term('z2')])
+        f = Formula('->', f1, f2)
+        f = Formula('A', 'z2', f)
+        f = Formula('A', 'z1', f)
+
+        for i in range(args_num):
+            f = Formula('A', 'x'+str(i), f)
+        new_formulas.add(f)
+
+    return new_formulas
+
 
 
 def replace_equality_with_SAME_in_formulas(formulas: AbstractSet[Formula]) -> \
