@@ -12,9 +12,10 @@ from logic_utils import fresh_variable_name_generator
 
 from predicates.syntax import *
 from predicates.semantics import *
-#from code.predicates.syntax import *
-#from code.predicates.semantics import *
+# from code.predicates.syntax import *
+# from code.predicates.semantics import *
 from logic_utils import fresh_variable_name_generator
+
 
 def function_name_to_relation_name(function: str) -> str:
     """Converts the given function name to a canonically corresponding relation
@@ -108,7 +109,7 @@ def replace_relations_with_functions_in_model(model: Model[T],
         assert function not in model.function_meanings
         assert function_name_to_relation_name(function) in \
                model.relation_meanings
-    # Task 8.2
+        # Task 8.2
         # init stuff that we'll keep
         universe = model.universe
         constant_meanings = model.constant_meanings
@@ -137,11 +138,10 @@ def replace_relations_with_functions_in_model(model: Model[T],
                     if new_func_dic[meaning[1:]] != meaning[0]:
                         return None
                 # make sure all combos in universe are defined for function
-                if i != len(universe)**len(next(iter(new_func_dic))):
+                if i != len(universe) ** len(next(iter(new_func_dic))):
                     return None
             function_meanings[name_as_function] = new_func_dic
         return Model(universe, constant_meanings, relation_meanings, function_meanings)
-
 
 
 def compile_term(term: Term) -> List[Formula]:
@@ -186,7 +186,6 @@ def compile_term(term: Term) -> List[Formula]:
     return formula_list + [new_formula]
 
 
-
 def replace_functions_with_relations_in_formula(formula: Formula) -> Formula:
     """Syntactically converts the given formula to a formula that does not
     contain any function invocations, and is "one-way equivalent" in the sense
@@ -211,7 +210,6 @@ def replace_functions_with_relations_in_formula(formula: Formula) -> Formula:
         assert variable[0] != 'z'
     # Task 8.4
 
-
     if is_equality(formula.root) or is_relation(formula.root):
         steps = []
         new_relation_args = []
@@ -232,7 +230,6 @@ def replace_functions_with_relations_in_formula(formula: Formula) -> Formula:
             ret_form1 = Formula('->', brand_new_relation, ret_form0)
             ret_form0 = Formula('A', form.arguments[0].root, ret_form1)
         return ret_form0
-
 
     if is_unary(formula.root):
         return Formula(formula.root, replace_functions_with_relations_in_formula(formula.first))
@@ -292,26 +289,26 @@ AbstractSet[Formula]) -> \
     # now we want it to be true for any model so we add constraints in the form of extra formulas that force the meaning
     # the function f and the relation F to be equal
 
-    all_function_names = reduce(lambda x, y: x|y, [f.functions() for f in formulas])
+    all_function_names = reduce(lambda x, y: x | y, [f.functions() for f in formulas])
     new_formulas = {replace_functions_with_relations_in_formula(f) for f in formulas}
 
     for name, args_num in all_function_names:
         relation_name = function_name_to_relation_name(name)
         var_terms = [Term('x' + str(i)) for i in range(args_num)]
-        predicate = Formula('E', 'z', Formula(relation_name, [Term('z')]+var_terms))
+        predicate = Formula('E', 'z', Formula(relation_name, [Term('z')] + var_terms))
         for i in range(args_num):
-            predicate = Formula('A', 'x'+str(i), predicate)
+            predicate = Formula('A', 'x' + str(i), predicate)
         new_formulas.add(predicate)
 
-        f1 = Formula('&', Formula(relation_name, [Term('z1')]+var_terms),
-                     Formula(relation_name, [Term('z2')]+var_terms))
-        f2 = Formula('=', [Term('z1'),Term('z2')])
+        f1 = Formula('&', Formula(relation_name, [Term('z1')] + var_terms),
+                     Formula(relation_name, [Term('z2')] + var_terms))
+        f2 = Formula('=', [Term('z1'), Term('z2')])
         f = Formula('->', f1, f2)
         f = Formula('A', 'z2', f)
         f = Formula('A', 'z1', f)
 
         for i in range(args_num):
-            f = Formula('A', 'x'+str(i), f)
+            f = Formula('A', 'x' + str(i), f)
         new_formulas.add(f)
 
     return new_formulas
@@ -368,8 +365,8 @@ def replace_equality_with_SAME_in_formulas(formulas: AbstractSet[Formula]) -> \
     z = Term('z')
     ref = Formula('A', 'x', Formula(same, [x, x]))
     sym = Formula('A', 'x', Formula('A', 'y', Formula('->', Formula(same, [x, y]), Formula(same, [y, x]))))
-    f1 = Formula('&', Formula(same, [x,y]), Formula(same, [y,z]))
-    f2 = Formula(same, [x,z])
+    f1 = Formula('&', Formula(same, [x, y]), Formula(same, [y, z]))
+    f2 = Formula(same, [x, z])
     f = Formula('->', f1, f2)
     trans = Formula('A', 'x', Formula('A', 'y', Formula('A', 'z', f)))
     all_formulas = all_formulas | {ref, sym, trans}
@@ -388,13 +385,10 @@ def replace_equality_with_SAME_in_formulas(formulas: AbstractSet[Formula]) -> \
         pred = Formula('->', left_side, right_side)
 
         for i in range(args_num):
-            pred = Formula('A', 'x'+str(i), Formula('A', 'y'+str(i), pred))
+            pred = Formula('A', 'x' + str(i), Formula('A', 'y' + str(i), pred))
         all_formulas.add(pred)
 
     return all_formulas
-
-
-
 
 
 def add_SAME_as_equality_in_model(model: Model[T]) -> Model[T]:
@@ -413,6 +407,17 @@ def add_SAME_as_equality_in_model(model: Model[T]) -> Model[T]:
     """
     assert 'SAME' not in model.relation_meanings
     # Task 8.7
+    # init the little shits from original model
+    universe = model.universe
+    constant_meanings = model.constant_meanings
+    function_meanings = model.function_meanings
+    relation_meanings = dict(model.relation_meanings)
+    same_meaning_set = set()
+    # define each val in universe is SAME to itself
+    for val in universe:
+        same_meaning_set.add((val, val))
+    relation_meanings['SAME'] = same_meaning_set
+    return Model(universe, constant_meanings, relation_meanings, function_meanings)
 
 
 def make_equality_as_SAME_in_model(model: Model[T]) -> Model[T]:
