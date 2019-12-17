@@ -10,9 +10,10 @@ from typing import AbstractSet, List, Set
 
 from logic_utils import fresh_variable_name_generator
 
+
 from predicates.syntax import *
 from predicates.semantics import *
-
+from logic_utils import fresh_variable_name_generator
 
 def function_name_to_relation_name(function: str) -> str:
     """Converts the given function name to a canonically corresponding relation
@@ -164,6 +165,25 @@ def compile_term(term: Term) -> List[Formula]:
     """
     assert is_function(term.root)
     # Task 8.3
+
+    # for each arg, if its a function create the formula list for it DFS
+    formula_list = []
+    new_args = []
+    for arg in term.arguments:
+        if is_function(arg.root):
+            formula_list += compile_term(arg)
+            updated_name = formula_list[-1].arguments[0]  # assuming what i want is always the last one
+            new_args.append(updated_name)
+        else:
+            new_args.append(arg)
+
+    new_name = next(fresh_variable_name_generator)
+    t1 = Term(root=new_name)
+    t2 = Term(root=term.root, arguments=new_args)
+    new_formula = Formula(root='=', arguments_or_first_or_variable=(t1, t2))
+
+    return formula_list + [new_formula]
+
 
 
 def replace_functions_with_relations_in_formula(formula: Formula) -> Formula:
