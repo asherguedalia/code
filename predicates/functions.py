@@ -10,9 +10,10 @@ from typing import AbstractSet, List, Set
 
 from logic_utils import fresh_variable_name_generator
 
-
 from predicates.syntax import *
 from predicates.semantics import *
+#from code.predicates.syntax import *
+#from code.predicates.semantics import *
 from logic_utils import fresh_variable_name_generator
 
 def function_name_to_relation_name(function: str) -> str:
@@ -209,6 +210,39 @@ def replace_functions_with_relations_in_formula(formula: Formula) -> Formula:
     for variable in formula.variables():
         assert variable[0] != 'z'
     # Task 8.4
+
+
+    if is_equality(formula.root) or is_relation(formula.root):
+        steps = []
+        new_relation_args = []
+        for arg in formula.arguments:
+            # get all steps for this relation
+            if is_function(arg.root):
+                steps += compile_term(arg)
+                new_relation_args.append(steps[-1].arguments[0])
+            else:
+                new_relation_args.append(arg)
+
+        ret_form0 = Formula(formula.root, new_relation_args)
+        for form in reversed(steps):
+            # form are of type z1 = f(x,y)
+            #  create new relation for form
+            brand_new_relation = Formula(function_name_to_relation_name(form.arguments[1].root),
+                                         [form.arguments[0]] + list(form.arguments[1].arguments))
+            ret_form1 = Formula('->', brand_new_relation, ret_form0)
+            ret_form0 = Formula('A', form.arguments[0].root, ret_form1)
+        return ret_form0
+
+
+    if is_unary(formula.root):
+        return Formula(formula.root, replace_functions_with_relations_in_formula(formula.first))
+
+    if is_binary(formula.root):
+        return Formula(formula.root, replace_functions_with_relations_in_formula(formula.first),
+                       replace_functions_with_relations_in_formula(formula.second))
+
+    if is_quantifier(formula.root):
+        return Formula(formula.root, formula.variable, replace_functions_with_relations_in_formula(formula.predicate))
 
 
 def replace_functions_with_relations_in_formulas(formulas:
