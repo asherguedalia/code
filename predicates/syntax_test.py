@@ -297,6 +297,8 @@ def test_formula_substitute(debug=False):
         if debug:
             print('Substituting', substitution_map, 'in', formula, 'yields',
                   result)
+        if result != expected:
+            print('result = ', result, 'expected ', expected)
         assert result == expected
 
     for s,substitution,forbidden_variables,variable_name in [

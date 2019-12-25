@@ -306,10 +306,14 @@ class Term:
         # after
 
         if is_constant(self.root) or is_variable(self.root):
+
             if self.root not in substitution_map:
                 return self
             sub = substitution_map[self.root]
             sub_vars = sub.variables()
+            #todo- we need these next lines??
+            #if self.root in forbidden_variables:
+            #    raise ForbiddenVariableError(self.root)
             for variable in forbidden_variables:
                 if variable in sub_vars:
                     raise ForbiddenVariableError(str(variable))
@@ -827,6 +831,37 @@ class Formula:
         for variable in forbidden_variables:
             assert is_variable(variable)
         # Task 9.2
+
+        if is_equality(self.root):
+            t1 = self.arguments[0].substitute(substitution_map, forbidden_variables)
+            t2 = self.arguments[1].substitute(substitution_map, forbidden_variables)
+            return Formula(root='=', arguments_or_first_or_variable=[t1, t2])
+
+        if is_relation(self.root):
+            new_args = [t.substitute(substitution_map, forbidden_variables) for t in self.arguments]
+            return Formula(root=self.root, arguments_or_first_or_variable=new_args)
+
+        if is_unary(self.root):
+            return Formula(self.root, self.first.substitute(substitution_map, forbidden_variables))
+
+        if is_binary(self.root):
+            return Formula(self.root, self.first.substitute(substitution_map, forbidden_variables),
+                           self.second.substitute(substitution_map, forbidden_variables))
+
+        if is_quantifier(self.root):
+            # so substitute inner formula but make the quantified variable also forbidden
+
+            #  remove entry of bounded variables so they do not get subbed
+            if self.variable in substitution_map.keys():
+                substitution_map = dict(substitution_map)
+                del substitution_map[self.variable]
+
+            predicate = self.predicate.substitute(substitution_map, forbidden_variables | {self.variable})
+            return Formula(self.root, self.variable, predicate)
+
+        raise Exception('why are you here??')
+
+
 
     def propositional_skeleton(self) -> Tuple[PropositionalFormula,
                                               Mapping[str, Formula]]:
