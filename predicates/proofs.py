@@ -539,6 +539,10 @@ class Proof:
             """
             assert line_number < len(lines) and lines[line_number] is self
             # Task 9.5
+            if self.assumption in assumptions:
+                if self.formula == self.assumption.instantiate(self.instantiation_map):
+                    return True
+            return False
     
     @frozen
     class MPLine:
