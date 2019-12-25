@@ -311,9 +311,6 @@ class Term:
                 return self
             sub = substitution_map[self.root]
             sub_vars = sub.variables()
-            #todo- we need these next lines??
-            #if self.root in forbidden_variables:
-            #    raise ForbiddenVariableError(self.root)
             for variable in forbidden_variables:
                 if variable in sub_vars:
                     raise ForbiddenVariableError(str(variable))
