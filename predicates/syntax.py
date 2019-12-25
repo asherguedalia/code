@@ -302,6 +302,27 @@ class Term:
             assert is_variable(variable)
         # Task 9.1
 
+        # check for illegal variable
+        # after
+
+        if is_constant(self.root) or is_variable(self.root):
+            if self.root not in substitution_map:
+                return self
+            sub = substitution_map[self.root]
+            sub_vars = sub.variables()
+            for variable in forbidden_variables:
+                if variable in sub_vars:
+                    raise ForbiddenVariableError(str(variable))
+            return sub
+
+        if is_function(self.root):
+            new_args = [t.substitute(substitution_map, forbidden_variables) for t in self.arguments]
+            return Term(root=self.root, arguments=new_args)
+
+        raise Exception('Should not be here!')
+
+
+
 def is_equality(s: str) -> bool:
     """Checks if the given string is the equality relation.
 

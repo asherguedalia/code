@@ -7,6 +7,7 @@
 
 from functools import reduce
 from itertools import product
+from typing import List
 
 from propositions.proofs import *
 
