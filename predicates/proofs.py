@@ -239,7 +239,6 @@ class Schema:
         for variable in bound_variables:
             assert is_variable(variable)
         # Task 9.3
-
         templates = set(relations_instantiation_map.keys())
         # base case 1:
         if is_equality(formula.root) or (is_relation(formula.root) and formula.root not in templates):
@@ -249,6 +248,9 @@ class Schema:
         # base case 2:
         if is_relation(formula.root) and formula.root in templates and len(formula.arguments) == 0:
             # so its a nullary relation template just return the subsitution from the map:
+            if len(relations_instantiation_map[formula.root].free_variables().intersection(bound_variables)) > 0:
+                raise Schema.BoundVariableError(
+                    (relations_instantiation_map[formula.root].variables().intersection(bound_variables)).pop(), formula.root)
             return relations_instantiation_map[formula.root]
 
         # interesting base case 3: similar to before but we have one argument
@@ -258,6 +260,7 @@ class Schema:
             new_sub_map = {'_': t_tag}
             fi = relations_instantiation_map[formula.root]
             if len(fi.free_variables().intersection(bound_variables)) > 0:
+
                 raise Schema.BoundVariableError((fi.free_variables().intersection(bound_variables)).pop(), formula.root)
             f = fi.substitute(new_sub_map, set())
             return f
@@ -406,6 +409,33 @@ class Schema:
                 assert is_relation(key)
                 assert isinstance(instantiation_map[key], Formula)
         # Task 9.4
+        constants_and_vars_map = {}
+        relations_map = {}
+        # create the different maps:
+        for key in instantiation_map:
+            if key not in self.templates:
+                return None
+            x = instantiation_map[key]
+            if is_variable(key) or is_constant(key):
+                # todo - this seems very wierd why do i want this?
+                if isinstance(x, str):
+                    x = Term.parse(x)
+                constants_and_vars_map[key] = x
+            elif is_relation(key):
+                relations_map[key] = x
+            else:
+                raise Exception('is this possible???')
+
+        try:
+            res = Schema._instantiate_helper(self.formula, constants_and_vars_map, relations_map, set())
+
+        except Schema.BoundVariableError as e:
+            return None
+
+        except ForbiddenVariableError as e:
+            return None
+
+        return res
 
 @frozen
 class Proof:
