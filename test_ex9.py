@@ -53,8 +53,8 @@ def test_task12(debug=False):
 #test_task3(True)
 #todo- i get this in test task 3: Threw an exception as expected, though not a BoundVariableError, but instead: x
 #test_task4(True)
-test_task5(True)
-#test_task6(True)
+#test_task5(True)
+test_task6(True)
 #test_task7(True)
 #test_task8(True)
 #test_task9(True)

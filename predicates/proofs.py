@@ -607,6 +607,11 @@ class Proof:
                 current line, ``False`` otherwise.
             """
             assert line_number < len(lines) and lines[line_number] is self
+            f = Formula('->', lines[self.antecedent_line_number].formula, self.formula)
+            if self.antecedent_line_number < line_number and self.conditional_line_number < line_number:
+                if lines[self.conditional_line_number].formula == f:
+                    return True
+            return False
             # Task 9.6
 
     @frozen
