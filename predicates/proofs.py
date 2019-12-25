@@ -10,6 +10,7 @@ from logic_utils import frozen, frozendict
 
 from propositions.semantics import is_tautology as is_propositional_tautology
 
+#from code.predicates.syntax import *
 from predicates.syntax import *
 
 #: A mapping from constant names, variable names, and relation names to
@@ -238,6 +239,59 @@ class Schema:
         for variable in bound_variables:
             assert is_variable(variable)
         # Task 9.3
+
+        templates = set(relations_instantiation_map.keys())
+        # base case 1:
+        if is_equality(formula.root) or (is_relation(formula.root) and formula.root not in templates):
+            # so its is a relation that is not a template or an equality
+            return formula.substitute(constants_and_variables_instantiation_map, set())
+
+        # base case 2:
+        if is_relation(formula.root) and formula.root in templates and len(formula.arguments) == 0:
+            # so its a nullary relation template just return the subsitution from the map:
+            return relations_instantiation_map[formula.root]
+
+        # interesting base case 3: similar to before but we have one argument
+        if is_relation(formula.root) and formula.root in templates and len(formula.arguments) == 1:
+            # first get t' for the term
+            t_tag = formula.arguments[0].substitute(constants_and_variables_instantiation_map, set())
+            new_sub_map = {'_': t_tag}
+            fi = relations_instantiation_map[formula.root]
+            if len(fi.free_variables().intersection(bound_variables)) > 0:
+                raise Schema.BoundVariableError((fi.free_variables().intersection(bound_variables)).pop(), formula.root)
+            f = fi.substitute(new_sub_map, set())
+            return f
+
+        if is_unary(formula.root):
+            return Formula(formula.root, Schema._instantiate_helper(formula.first,
+                                                                    constants_and_variables_instantiation_map,
+                                                                    relations_instantiation_map, bound_variables))
+        if is_binary(formula.root):
+            f1 = Schema._instantiate_helper(formula.first, constants_and_variables_instantiation_map,
+                                            relations_instantiation_map, bound_variables)
+            f2 = Schema._instantiate_helper(formula.second, constants_and_variables_instantiation_map,
+                                            relations_instantiation_map, bound_variables)
+            return Formula(formula.root, f1, f2)
+
+        if is_quantifier(formula.root):
+            # if variable is a template sub it here
+            new_var = formula.variable
+            if formula.variable in constants_and_variables_instantiation_map:
+                new_var = (constants_and_variables_instantiation_map[new_var]).root
+
+            new_bound_set = bound_variables | {new_var}
+            pred = Schema._instantiate_helper(
+                formula.predicate, constants_and_variables_instantiation_map, relations_instantiation_map, new_bound_set)
+            return Formula(formula.root, new_var, pred)
+
+        raise Exception('You shall not pass!!!' + str(formula))
+
+
+
+
+
+
+
 
     def instantiate(self, instantiation_map: InstantiationMap) -> \
             Union[Formula, None]:
