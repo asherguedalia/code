@@ -9,7 +9,7 @@ from __future__ import annotations
 
 from typing import AbstractSet, Mapping, Optional, Sequence, Set, Tuple, Union
 
-from logic_utils import frozen
+from logic_utils import frozen, fresh_variable_name_generator
 from propositions.syntax import Formula as PropositionalFormula, \
     is_variable as is_propositional_variable
 
@@ -29,6 +29,7 @@ class ForbiddenVariableError(Exception):
         assert is_variable(variable_name)
         self.variable_name = variable_name
 
+
 def is_constant(s: str) -> bool:
     """Checks if the given string is a constant name.
 
@@ -38,8 +39,9 @@ def is_constant(s: str) -> bool:
     Returns:
         ``True`` if the given string is a constant name, ``False`` otherwise.
     """
-    return  (((s[0] >= '0' and s[0] <= '9') or (s[0] >= 'a' and s[0] <= 'd'))
-             and s.isalnum()) or s == '_'
+    return (((s[0] >= '0' and s[0] <= '9') or (s[0] >= 'a' and s[0] <= 'd'))
+            and s.isalnum()) or s == '_'
+
 
 def is_variable(s: str) -> bool:
     """Checks if the given string is a variable name.
@@ -52,6 +54,7 @@ def is_variable(s: str) -> bool:
     """
     return s[0] >= 'u' and s[0] <= 'z' and s.isalnum()
 
+
 def is_function(s: str) -> bool:
     """Checks if the given string is a function name.
 
@@ -62,6 +65,7 @@ def is_function(s: str) -> bool:
         ``True`` if the given string is a function name, ``False`` otherwise.
     """
     return s[0] >= 'f' and s[0] <= 't' and s.isalnum()
+
 
 @frozen
 class Term:
@@ -124,7 +128,7 @@ class Term:
             current term, ``False`` otherwise.
         """
         return isinstance(other, Term) and str(self) == str(other)
-        
+
     def __ne__(self, other: object) -> bool:
         """Compares the current term with the given one.
 
@@ -169,15 +173,15 @@ class Term:
                 break
 
         if is_constant(s[0]) or is_variable(s[0]):
-            return Term(root=s[:i+1]), s[i+1:]
+            return Term(root=s[:i + 1]), s[i + 1:]
 
         if is_function(s[0]):
             # first get the name
-            func_name = s[:i+1]
+            func_name = s[:i + 1]
             # now parse all arguments separately
             args = []
-            assert s[i+1] == '('
-            rest = ',' + s[i+2:]
+            assert s[i + 1] == '('
+            rest = ',' + s[i + 2:]
             while rest[0] == ',':  # should end when we reach ')' instead of ','
                 cur_arg, rest = Term.parse_prefix(rest[1:])
                 args.append(cur_arg)
@@ -187,9 +191,7 @@ class Term:
 
             return Term(root=func_name, arguments=args), rest[1:]
 
-
         raise Exception('Illegal prefix')
-
 
     @staticmethod
     def parse(s: str) -> Term:
@@ -323,7 +325,6 @@ class Term:
         raise Exception('Should not be here!')
 
 
-
 def is_equality(s: str) -> bool:
     """Checks if the given string is the equality relation.
 
@@ -336,6 +337,7 @@ def is_equality(s: str) -> bool:
     """
     return s == '='
 
+
 def is_relation(s: str) -> bool:
     """Checks if the given string is a relation name.
 
@@ -346,6 +348,7 @@ def is_relation(s: str) -> bool:
         ``True`` if the given string is a relation name, ``False`` otherwise.
     """
     return s[0] >= 'F' and s[0] <= 'T' and s.isalnum()
+
 
 def is_unary(s: str) -> bool:
     """Checks if the given string is a unary operator.
@@ -358,6 +361,7 @@ def is_unary(s: str) -> bool:
     """
     return s == '~'
 
+
 def is_binary(s: str) -> bool:
     """Checks if the given string is a binary operator.
 
@@ -369,6 +373,7 @@ def is_binary(s: str) -> bool:
     """
     return s == '&' or s == '|' or s == '->'
 
+
 def is_quantifier(s: str) -> bool:
     """Checks if the given string is a quantifier.
 
@@ -379,6 +384,7 @@ def is_quantifier(s: str) -> bool:
         ``True`` if the given string is a quantifier, ``False`` otherwise.
     """
     return s == 'A' or s == 'E'
+
 
 @frozen
 class Formula:
@@ -445,7 +451,7 @@ class Formula:
             assert isinstance(arguments_or_first_or_variable, Formula) and \
                    second_or_predicate is not None
             self.root, self.first, self.second = \
-                root, arguments_or_first_or_variable, second_or_predicate           
+                root, arguments_or_first_or_variable, second_or_predicate
         else:
             assert is_quantifier(root)
             # Populate self.variable and self.predicate
@@ -485,11 +491,6 @@ class Formula:
 
         raise Exception('Illegal Input!')
 
-
-
-
-
-
     def __eq__(self, other: object) -> bool:
         """Compares the current formula with the given one.
 
@@ -501,7 +502,7 @@ class Formula:
             current formula, ``False`` otherwise.
         """
         return isinstance(other, Formula) and str(self) == str(other)
-        
+
     def __ne__(self, other: object) -> bool:
         """Compares the current formula with the given one.
 
@@ -550,14 +551,14 @@ class Formula:
                 if not s[i].isalnum():
                     i -= 1
                     break
-            relation_name = s[:i+1]
+            relation_name = s[:i + 1]
             # now parse all arguments separately
             args = []
             assert s[i + 1] == '('
 
-            if s[i+2] == ')':
+            if s[i + 2] == ')':
                 # so there are no arguments
-                return Formula(root=relation_name, arguments_or_first_or_variable=[]), s[i+3:]
+                return Formula(root=relation_name, arguments_or_first_or_variable=[]), s[i + 3:]
 
             rest = ',' + s[i + 2:]
             while rest[0] == ',':  # should end when we reach ')' instead of ','
@@ -581,7 +582,7 @@ class Formula:
                 if s[i] == ')':
                     counter -= 1
                     if counter < 0:
-                            raise Exception('too many closing brackets')
+                        raise Exception('too many closing brackets')
                     if counter == 0:
                         # so this is the one that closes what we opened
                         remainder = s[i + 1:]
@@ -619,9 +620,8 @@ class Formula:
             var = str(t1)
             assert is_variable(var)
 
-
             # now we have a something like ....] we need to fins the matching bracket
-            cur_s = s[1+len(var)+1:]  # this is the string ...]
+            cur_s = s[1 + len(var) + 1:]  # this is the string ...]
             counter = 1
             for i in range(len(cur_s)):
                 if cur_s[i] == ']':
@@ -630,12 +630,12 @@ class Formula:
                         # so we found our matching bracket
                         fi, extra = Formula.parse_prefix(cur_s[:i])
                         assert len(extra) == 0
-                        return Formula(root=quant, arguments_or_first_or_variable=var, second_or_predicate=fi), cur_s[i+1:]
+                        return Formula(root=quant, arguments_or_first_or_variable=var, second_or_predicate=fi), cur_s[
+                                                                                                                i + 1:]
                 if cur_s[i] == '[':
                     counter += 1
 
             raise Exception('bad input in square brackets')
-
 
         raise Exception('Who Are You???')
 
@@ -756,7 +756,6 @@ class Formula:
         if is_binary(self.root):
             return self.first.functions().union(self.second.functions())
 
-
     def relations(self) -> Set[Tuple[str, int]]:
         """Finds all relation names in the current formula, along with their
         arities.
@@ -786,7 +785,7 @@ class Formula:
 
     def substitute(self, substitution_map: Mapping[str, Term],
                    forbidden_variables: AbstractSet[str] = frozenset()) -> \
-                Formula:
+            Formula:
         """Substitutes in the current formula, each constant name `name` or free
         occurrence of variable name `name` that is a key in `substitution_map`
         with the term `substitution_map[name]`.
@@ -858,8 +857,6 @@ class Formula:
 
         raise Exception('why are you here??')
 
-
-
     def propositional_skeleton(self) -> Tuple[PropositionalFormula,
                                               Mapping[str, Formula]]:
         """Computes a propositional skeleton of the current formula.
@@ -877,7 +874,34 @@ class Formula:
             propositional formula to the subformula for which it was
             substituted.
         """
-        # Task 9.6
+        # Task 9.8
+        return self.propositional_skeleton_helper({})
+
+    def propositional_skeleton_helper(self, given_map) -> Tuple[PropositionalFormula,
+                                                                Mapping[str, Formula]]:
+        # relation or quantifier is mapped directly to new variable
+        if is_relation(self.root) or is_quantifier(self.root) or is_equality(self.root):
+            already_mapped = False
+            # look for already-existing mapping
+            for var, form in given_map.items():
+                if form == self:
+                    new_var = var
+                    already_mapped = True
+                    break
+            if not already_mapped:
+                new_var = next(fresh_variable_name_generator)
+            return PropositionalFormula.parse(new_var), {new_var: self}
+        # binary returns skeleton for formulae on each side
+        if is_binary(self.root):
+            form1, map1 = self.first.propositional_skeleton_helper(given_map)
+            form2, map2 = self.second.propositional_skeleton_helper(map1)
+            map1 = dict(map1)
+            map1.update(map2)
+            return PropositionalFormula(self.root, form1, form2), map1
+        # unary returns map of skeleton of f (for self == ~f), but adds ~ to formula of skeleton
+        if is_unary(self.root):
+            form1, map1 = self.first.propositional_skeleton_helper(given_map)
+            return PropositionalFormula('~', form1), map1
 
     @staticmethod
     def from_propositional_skeleton(skeleton: PropositionalFormula,
