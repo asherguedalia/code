@@ -877,8 +877,7 @@ class Formula:
         # Task 9.8
         return self.propositional_skeleton_helper({})
 
-    def propositional_skeleton_helper(self, given_map) -> Tuple[PropositionalFormula,
-                                                                Mapping[str, Formula]]:
+    def propositional_skeleton_helper(self, given_map) -> Tuple[PropositionalFormula, Mapping[str, Formula]]:
         # relation or quantifier is mapped directly to new variable
         if is_relation(self.root) or is_quantifier(self.root) or is_equality(self.root):
             already_mapped = False
@@ -890,7 +889,9 @@ class Formula:
                     break
             if not already_mapped:
                 new_var = next(fresh_variable_name_generator)
-            return PropositionalFormula.parse(new_var), {new_var: self}
+            # new_map = dict(given_map)
+            given_map.update({new_var: self})
+            return PropositionalFormula.parse(new_var), given_map
         # binary returns skeleton for formulae on each side
         if is_binary(self.root):
             form1, map1 = self.first.propositional_skeleton_helper(given_map)
