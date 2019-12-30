@@ -924,3 +924,36 @@ class Formula:
         for key in substitution_map:
             assert is_propositional_variable(key)
         # Task 9.10
+        # convert skeleton to string
+        prop_form_as_string = str(skeleton)
+        pred_form_as_string = ''
+        i = 0
+        # create string of predicate formula. add each char in prop, convert vars using map
+        while i < len(prop_form_as_string):
+            to_add = 1
+            var = prop_form_as_string[i]
+            if is_propositional_variable(var):
+                # then get full variable, convert to formula, convert form to string
+                prop_var = get_next_propositional_var(prop_form_as_string, i)
+                to_add = len(prop_var)
+                form = substitution_map[prop_var]
+                var = str(form)
+            pred_form_as_string += var
+            i += to_add
+        return Formula.parse(pred_form_as_string)
+
+
+def get_next_propositional_var(parsed_formula: str, index: int) -> str:
+    """
+    finds the full propositional variable. assumes index is the first index of a valid propositional variable
+    :param parsed_formula: string representation of propositional formula
+    :param index: index that begins a valid propositional variable
+    :return: propositional variable that index begins
+    """
+    var = parsed_formula[index]
+    for i in range(index + 1, len(parsed_formula) + 1):
+        if is_propositional_variable(parsed_formula[index: i]):
+            var = parsed_formula[index: i]
+            continue
+        break
+    return var
