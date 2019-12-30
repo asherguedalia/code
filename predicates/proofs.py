@@ -837,6 +837,13 @@ def axiom_specialization_map_to_schema_instantiation_map(
     for key in substitution_map:
         assert is_propositional_variable(key)
     # Task 9.11.1
+    instantiation_map = dict()
+    # foreach axiom, spec --> map AXIOM to predicate-form of spec
+    for axiom, specialization in propositional_specialization_map.items():
+        schema = axiom.upper()
+        pred_form = Formula.from_propositional_skeleton(specialization, substitution_map)
+        instantiation_map.update({schema: pred_form})
+    return instantiation_map
 
 
 def prove_from_skeleton_proof(formula: Formula,
@@ -866,6 +873,34 @@ def prove_from_skeleton_proof(formula: Formula,
     assert Formula.from_propositional_skeleton(
         skeleton_proof.statement.conclusion, substitution_map) == formula
     # Task 9.11.2
+    assumptions = PROPOSITIONAL_AXIOMATIC_SYSTEM_SCHEMAS
+    conclusion = formula
+    lines = []
+    for prop_line in skeleton_proof.lines:
+        # should never be an assumption
+        if prop_line.is_assumption():
+            raise Exception("reached assumption-line: skeleton proof should not have assumptions!")
+        prop_rule = prop_line.rule
+        # if line isn't MP then it's a specialization of an axiom
+        if prop_rule != MP:
+            propositional_map = PropositionalInferenceRule.formula_specialization_map(prop_rule.conclusion,
+                                                                                      prop_line.formula)
+            instantiation_map = axiom_specialization_map_to_schema_instantiation_map(propositional_map,
+                                                                                     substitution_map)
+            new_formula = Formula.from_propositional_skeleton(prop_line.formula, substitution_map)
+            new_rule = PROPOSITIONAL_AXIOM_TO_SCHEMA[prop_rule]
+            new_line = Proof.AssumptionLine(formula=new_formula,
+                                            assumption=new_rule,
+                                            instantiation_map=instantiation_map)
+        # else it's an MPLine
+        else:
+            new_formula = Formula.from_propositional_skeleton(prop_line.formula, substitution_map)
+            ant_line_num, cond_line_num = prop_line.assumptions[0], prop_line.assumptions[1]
+            new_line = Proof.MPLine(formula=new_formula,
+                                    antecedent_line_number=ant_line_num,
+                                    conditional_line_number=cond_line_num)
+        lines.append(new_line)
+    return Proof(assumptions, conclusion, lines)
 
 
 def prove_tautology(tautology: Formula) -> Proof:

@@ -896,9 +896,9 @@ class Formula:
         if is_binary(self.root):
             form1, map1 = self.first.propositional_skeleton_helper(given_map)
             form2, map2 = self.second.propositional_skeleton_helper(map1)
-            map1 = dict(map1)
-            map1.update(map2)
-            return PropositionalFormula(self.root, form1, form2), map1
+            # map1 = dict(map1)
+            # map1.update(map2)
+            return PropositionalFormula(self.root, form1, form2), map2
         # unary returns map of skeleton of f (for self == ~f), but adds ~ to formula of skeleton
         if is_unary(self.root):
             form1, map1 = self.first.propositional_skeleton_helper(given_map)
