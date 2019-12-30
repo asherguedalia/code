@@ -916,6 +916,12 @@ def prove_tautology(tautology: Formula) -> Proof:
     """
     assert is_propositional_tautology(tautology.propositional_skeleton()[0])
     # Task 9.12
+    # translate tautology to propositional form, get appropriate sub-map
+    skeleton, sub_map = tautology.propositional_skeleton()
+    # prove propositional tautology
+    skeleton_proof = prove_propositional_tautology(skeleton)
+    # translate proof back to predicate form
+    return prove_from_skeleton_proof(tautology, skeleton_proof, sub_map)
 
 
 def is_UG_formula(formula) -> bool:
