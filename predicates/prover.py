@@ -307,7 +307,6 @@ class Prover:
         f = self._lines[line_number].formula  # this is the formula of form: `'A``\ `x`\ ``[``\ `predicate`\ ``]'``.
         f1 = Formula(root='->', arguments_or_first_or_variable=f, second_or_predicate=instantiation)
         var_to_map = f.variable
-        print('var to map is: ', var_to_map)
         sub_map = {var_to_map: Term('_')}
         to_sub = f.predicate.substitute(sub_map, {})
         new_map = {'R': to_sub, 'x': var_to_map, 'c': term}
@@ -336,6 +335,26 @@ class Prover:
         for line_number in line_numbers:
             assert line_number < len(self._lines)
         # Task 10.2
+        numbers_list = list(line_numbers)
+        assert len(numbers_list) > 0  #  todo - does this always need to be the case?
+        formulas = [implication]
+        formula = implication
+
+        for i in range(len(line_numbers)):
+            number = numbers_list[i]
+            formula = Formula('->', self._lines[number].formula, formula)
+            formulas.append(formula)
+
+        cur_num = self.add_tautology(formula)
+        for i in reversed(range(len(numbers_list))):
+            # i need this many MP's
+            num = numbers_list[i] # this is the line number in _lines
+            cur_num = self.add_mp(consequent=formulas[i], antecedent_line_number=num, conditional_line_number=cur_num)
+
+        return cur_num
+
+
+
 
     def add_existential_derivation(self, consequent: Union[Formula, str],
                                    line_number1: int, line_number2: int) -> int:
@@ -370,6 +389,20 @@ class Prover:
         conditional = self._lines[line_number2].formula
         assert conditional == Formula('->', quantified.predicate, consequent)
         # Task 10.3
+        f = self._lines[line_number2].formula
+        f_vars = list(f.variables())
+        assert len(f_vars) == 1 # assuming there is only one variable could be wrong if i didn't get it
+        ug_f = Formula('A', f_vars[0], f)
+        ug_line = self.add_ug(ug_f, line_number2)
+
+        f2 = Formula('&', ug_f, self._lines[line_number1].formula)
+        ia_f = Formula('->', f2, consequent)
+
+        quantified_var = self._lines[line_number1].formula.variable
+        relation_name = str(self._lines[line_number1].formula.predicate.root)
+        ia_line = self.add_instantiated_assumption(ia_f, self.ES, {'R': relation_name + '(_)', 'Q': consequent, 'x': quantified_var})
+
+        return self.add_tautological_implication(consequent, {line_number1, ug_line, ia_line})
 
     def add_flipped_equality(self, flipped: Union[Formula, str],
                              line_number: int) -> int:
