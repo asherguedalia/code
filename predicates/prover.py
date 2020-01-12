@@ -389,24 +389,14 @@ class Prover:
         conditional = self._lines[line_number2].formula
         assert conditional == Formula('->', quantified.predicate, consequent)
         # Task 10.3
-        #f_vars = list(f.variables())
-        #print('f is: ', f)
-        #print(f_vars)
-        #assert len(f_vars) == 1 # assuming there is only one variable could be wrong if i didn't get it
-        # like i just had this give me a bug but it actually saved me so still not changing cuz it works
-        # also if this causes trouble kirsh try just removing the assert maybe it doesnt matter which variable we quantify
-        # ok it really looks to me like there only should be one variable cuz otherwise how am i supposded to know
-        # which one to quantify?!
-        #-----fixed----
-        # okok i got this the variable to quantify needs to be the one i use in line 1
+
         ug_f = Formula('A', quantified.variable, conditional)
         ug_line = self.add_ug(ug_f, line_number2)
 
         f2 = Formula('&', ug_f, quantified)
         ia_f = Formula('->', f2, consequent)
 
-        # but what i should really do is substitute x for _
-        relation_formula = self._lines[line_number1].formula.predicate.substitute({str(quantified.variable): Term('_')} ,set())
+        relation_formula = quantified.predicate.substitute({str(quantified.variable): Term('_')} ,set())
         ia_line = self.add_instantiated_assumption(ia_f, self.ES, {'R': relation_formula, 'Q': consequent, 'x': quantified.variable})
 
         return self.add_tautological_implication(consequent, {line_number1, ug_line, ia_line})

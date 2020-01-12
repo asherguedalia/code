@@ -186,6 +186,7 @@ def is_tautology(formula: Formula) -> bool:
     Returns:
         ``True`` if the given formula is a tautology, ``False`` otherwise.
     """
+    #print('is ', formula, 'a tautology')
     return reduce(lambda x, y: x and y, truth_values(formula, all_models(list(formula.variables()))))
     # Task 2.5a
 
