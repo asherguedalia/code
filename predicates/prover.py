@@ -308,7 +308,7 @@ class Prover:
         f1 = Formula(root='->', arguments_or_first_or_variable=f, second_or_predicate=instantiation)
         var_to_map = f.variable
         sub_map = {var_to_map: Term('_')}
-        to_sub = f.predicate.substitute(sub_map, {})
+        to_sub = f.predicate.substitute(sub_map, set())
         new_map = {'R': to_sub, 'x': var_to_map, 'c': term}
         prev_line = self.add_instantiated_assumption(f1, self.UI, new_map)
         return self.add_mp(instantiation, line_number, prev_line)
@@ -389,18 +389,25 @@ class Prover:
         conditional = self._lines[line_number2].formula
         assert conditional == Formula('->', quantified.predicate, consequent)
         # Task 10.3
-        f = self._lines[line_number2].formula
-        f_vars = list(f.variables())
-        assert len(f_vars) == 1 # assuming there is only one variable could be wrong if i didn't get it
-        ug_f = Formula('A', f_vars[0], f)
+        #f_vars = list(f.variables())
+        #print('f is: ', f)
+        #print(f_vars)
+        #assert len(f_vars) == 1 # assuming there is only one variable could be wrong if i didn't get it
+        # like i just had this give me a bug but it actually saved me so still not changing cuz it works
+        # also if this causes trouble kirsh try just removing the assert maybe it doesnt matter which variable we quantify
+        # ok it really looks to me like there only should be one variable cuz otherwise how am i supposded to know
+        # which one to quantify?!
+        #-----fixed----
+        # okok i got this the variable to quantify needs to be the one i use in line 1
+        ug_f = Formula('A', quantified.variable, conditional)
         ug_line = self.add_ug(ug_f, line_number2)
 
-        f2 = Formula('&', ug_f, self._lines[line_number1].formula)
+        f2 = Formula('&', ug_f, quantified)
         ia_f = Formula('->', f2, consequent)
 
-        quantified_var = self._lines[line_number1].formula.variable
-        relation_name = str(self._lines[line_number1].formula.predicate.root)
-        ia_line = self.add_instantiated_assumption(ia_f, self.ES, {'R': relation_name + '(_)', 'Q': consequent, 'x': quantified_var})
+        # but what i should really do is substitute x for _
+        relation_formula = self._lines[line_number1].formula.predicate.substitute({str(quantified.variable): Term('_')} ,set())
+        ia_line = self.add_instantiated_assumption(ia_f, self.ES, {'R': relation_formula, 'Q': consequent, 'x': quantified.variable})
 
         return self.add_tautological_implication(consequent, {line_number1, ug_line, ia_line})
 
