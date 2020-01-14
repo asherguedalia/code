@@ -4,14 +4,16 @@
 # File name: predicates/prover.py
 
 from typing import AbstractSet, Collection, FrozenSet, List, Mapping, \
-                   Sequence, Tuple, Union
+    Sequence, Tuple, Union
 
 from logic_utils import fresh_variable_name_generator
 
 from predicates.syntax import *
 from predicates.proofs import *
-#from code.predicates.syntax import *
-#from code.predicates.proofs import *
+
+
+# from code.predicates.syntax import *
+# from code.predicates.proofs import *
 
 class Prover:
     """A class for gradually creating a first-order logic proof from given
@@ -51,7 +53,7 @@ class Prover:
     AXIOMS = frozenset({UI, EI, US, ES, RX, ME})
 
     def __init__(self, assumptions: Collection[Union[Schema, Formula, str]],
-                 print_as_proof_forms: bool=False) -> None:
+                 print_as_proof_forms: bool = False) -> None:
         """Initializes a `Prover` from its assumptions/additional axioms. The
         proof created by the prover initially has no lines.
 
@@ -67,7 +69,7 @@ class Prover:
             Prover.AXIOMS.union(
                 {assumption if isinstance(assumption, Schema)
                  else Schema(assumption) if isinstance(assumption, Formula)
-                 else Schema(Formula.parse(assumption))
+                else Schema(Formula.parse(assumption))
                  for assumption in assumptions})
         self._lines = []
         self._print_as_proof_forms = print_as_proof_forms
@@ -75,7 +77,7 @@ class Prover:
             print('Proving from assumptions/axioms:\n'
                   '  AXIOMS')
             for assumption in self._assumptions - Prover.AXIOMS:
-                  print('  ' + str(assumption))
+                print('  ' + str(assumption))
             print('Lines:')
 
     def qed(self) -> Proof:
@@ -151,7 +153,7 @@ class Prover:
                     assert isinstance(value, Formula)
         return self._add_line(Proof.AssumptionLine(instance, assumption,
                                                    instantiation_map))
-        
+
     def add_assumption(self, unique_instance: Union[Formula, str]) -> int:
         """Appends to the proof being created by the current prover a line that
         validly justifies the unique instance of one of the assumptions/axioms
@@ -265,7 +267,7 @@ class Prover:
                             line.predicate_line_number + line_shift)
         line_number = len(self._lines) - 1
         assert self._lines[line_number].formula == conclusion
-        return line_number                
+        return line_number
 
     def add_universal_instantiation(self, instantiation: Union[Formula, str],
                                     line_number: int, term: Union[Term, str]) \
@@ -336,7 +338,7 @@ class Prover:
             assert line_number < len(self._lines)
         # Task 10.2
         numbers_list = list(line_numbers)
-        assert len(numbers_list) > 0  #  todo - does this always need to be the case?
+        assert len(numbers_list) > 0  # todo - does this always need to be the case?
         formulas = [implication]
         formula = implication
 
@@ -348,13 +350,10 @@ class Prover:
         cur_num = self.add_tautology(formula)
         for i in reversed(range(len(numbers_list))):
             # i need this many MP's
-            num = numbers_list[i] # this is the line number in _lines
+            num = numbers_list[i]  # this is the line number in _lines
             cur_num = self.add_mp(consequent=formulas[i], antecedent_line_number=num, conditional_line_number=cur_num)
 
         return cur_num
-
-
-
 
     def add_existential_derivation(self, consequent: Union[Formula, str],
                                    line_number1: int, line_number2: int) -> int:
@@ -396,8 +395,9 @@ class Prover:
         f2 = Formula('&', ug_f, quantified)
         ia_f = Formula('->', f2, consequent)
 
-        relation_formula = quantified.predicate.substitute({str(quantified.variable): Term('_')} ,set())
-        ia_line = self.add_instantiated_assumption(ia_f, self.ES, {'R': relation_formula, 'Q': consequent, 'x': quantified.variable})
+        relation_formula = quantified.predicate.substitute({str(quantified.variable): Term('_')}, set())
+        ia_line = self.add_instantiated_assumption(ia_f, self.ES,
+                                                   {'R': relation_formula, 'Q': consequent, 'x': quantified.variable})
 
         return self.add_tautological_implication(consequent, {line_number1, ug_line, ia_line})
 
@@ -427,6 +427,25 @@ class Prover:
         assert equality == Formula('=', [flipped.arguments[1],
                                          flipped.arguments[0]])
         # Task 10.6
+        # get arguments
+        left = flipped.arguments[0]
+        right = flipped.arguments[1]
+        right_right_form = Formula('=', (right, right))
+        # create formula from args
+        form = Formula('->', Formula('=', (right, left)),
+                       Formula('->', right_right_form, Formula('=', (left, right))))
+        # get assumption index
+        first_ass_index = self.add_instantiated_assumption(right_right_form, self.RX, {"c": str(right)})
+        # get new index
+        second_ass_index = self.add_instantiated_assumption(form, self.ME, {"R": "_=" + str(right), "c": str(right),
+                                                                 "d": str(left)})
+        # get new rep to add
+        conv_rep = ("(" + str(flipped.arguments[1]) + "=" + str(flipped.arguments[1]) + "->" +
+                    str(flipped.arguments[0]) + "=" + str(flipped.arguments[1]) + ")")
+        partial_add_mp = self.add_mp(conv_rep, line_number, second_ass_index)
+        # get final str rep
+        final_str = str(flipped.arguments[0]) + "=" + str(flipped.arguments[1])
+        return self.add_mp(final_str, first_ass_index, partial_add_mp)
 
     def add_free_instantiation(self, instantiation: Union[Formula, str],
                                line_number: int,
@@ -476,6 +495,24 @@ class Prover:
         assert instantiation == \
                self._lines[line_number].formula.substitute(substitution_map)
         # Task 10.7
+        new_map = {}
+        # foreach key to sub: add sub to map, add sub to proof
+        for key in substitution_map:
+            # get new var to sub
+            var = next(fresh_variable_name_generator)
+            new_map[var] = substitution_map[key]
+            # create new form, update and add, get newline
+            line_number = self.update_new_form_in_proof(key, Term.parse(var), line_number, new_map)
+        # foreach var in new_map: instantiate
+        for var in new_map:
+            line_number = self.update_new_form_in_proof(var, new_map[var], line_number, new_map)
+        return line_number
+
+    def update_new_form_in_proof(self, key, val, line_number, new_map):
+        form_rep = "A" + str(key) + "[" + str(self._lines[line_number].formula) + "]"
+        index = self.add_ug(form_rep, line_number)
+        updated_form = self._lines[line_number].formula.substitute({key: val})
+        return self.add_universal_instantiation(str(updated_form), index, str(val))
 
     def add_substituted_equality(self, substituted: Union[Formula, str],
                                  line_number: int,
@@ -516,10 +553,26 @@ class Prover:
             parametrized_term = Term.parse(parametrized_term)
         assert substituted == \
                Formula('=', [parametrized_term.substitute(
-                                 {'_': equality.arguments[0]}),
-                             parametrized_term.substitute(
-                                 {'_': equality.arguments[1]})])
+                   {'_': equality.arguments[0]}),
+                   parametrized_term.substitute(
+                       {'_': equality.arguments[1]})])
         # Task 10.8
+        # get equality args
+        left = equality.arguments[0]
+        right = equality.arguments[1]
+        # create substitutes
+        sub_left = parametrized_term.substitute({"_": left})
+        sub_right = parametrized_term.substitute({"_": right})
+        # create formula
+        left_left_form = Formula('=', [sub_left, sub_left])
+        left_right_form = Formula('=', [sub_left, sub_right])
+        final_form = Formula('->', equality, Formula('->', left_left_form, left_right_form))
+        first_ass_index = self.add_instantiated_assumption(
+            final_form, self.ME, {"R": Formula("=", [sub_left, parametrized_term]), "c": left, "d": right})
+        add_mp = self.add_mp(Formula('->', left_left_form, left_right_form), line_number, first_ass_index)
+        second_ass_index = self.add_instantiated_assumption(left_left_form, self.RX, {"c": sub_left})
+        # return line number of final mp
+        return self.add_mp(left_right_form, second_ass_index, add_mp)
 
     def _add_chaining_of_two_equalities(self, line_number1: int,
                                         line_number2: int) -> int:
@@ -552,6 +605,21 @@ class Prover:
         assert is_equality(equality2.root)
         assert equality1.arguments[1] == equality2.arguments[0]
         # Task 10.9.1
+        # get equalities' args
+        first_left = equality1.arguments[0]
+        first_right = equality1.arguments[1]
+        second_right = equality2.arguments[1]
+        # get flipped equality
+        flipped = self.add_flipped_equality(str(first_right) + "=" + str(first_left), line_number1)
+        # create new form
+        new_form = Formula("->", self._lines[flipped].formula,
+                           Formula("->", equality2, Formula("=", [first_left, second_right])))
+        first_ass_index = self.add_instantiated_assumption(
+            new_form, self.ME, {"R": "_=" + str(second_right), "c": first_right, "d": first_left})
+        add_mp = self.add_mp(Formula("->", equality2,
+                                     Formula("=", [first_left, second_right])), flipped, first_ass_index)
+        # return line num of new mp
+        return self.add_mp(Formula("=", [first_left, second_right]), line_number2, add_mp)
 
     def add_chained_equality(self, chained: Union[Formula, str],
                              line_numbers: Sequence[int]) -> int:
@@ -597,3 +665,18 @@ class Prover:
             current_term = equality.arguments[1]
         assert chained.arguments[1] == current_term
         # Task 10.9.2
+        # get first line (already asserted that it exists)
+        new_line = line_numbers[0]
+        # chain all the rest
+        for i in range(1, len(line_numbers)):
+            new_line = self._add_chaining_of_two_equalities(new_line, line_numbers[i])
+        return new_line
+
+
+
+
+
+# init_line = line_numbers[0]
+# for line in line_numbers:
+#     init_line = self._add_chaining_of_two_equalities(init_line, line.)
+# return init_line
