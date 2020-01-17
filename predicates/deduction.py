@@ -8,6 +8,9 @@
 from predicates.syntax import *
 from predicates.proofs import *
 from predicates.prover import *
+# from code.predicates.syntax import *
+# from code.predicates.proofs import *
+# from code.predicates.prover import *
 
 def remove_assumption(proof: Proof, assumption: Formula,
                       print_as_proof_forms: bool = False) -> Proof:
@@ -138,3 +141,14 @@ def proof_by_way_of_contradiction(proof: Proof, assumption: Formula,
         if isinstance(line, Proof.UGLine):
             assert line.formula.variable not in assumption.free_variables()
     # Task 11.2
+    prover = Prover(proof.assumptions - {Schema(assumption)},
+                    print_as_proof_forms)
+    removed_assumption_proof = remove_assumption(proof, assumption, False)
+    final_formula = removed_assumption_proof.conclusion
+    step1 = prover.add_proof(final_formula, removed_assumption_proof)
+
+    t = Formula('~', final_formula.second)
+    step2 = prover.add_tautology(t)
+    step3 = prover.add_tautological_implication(Formula('->', t, Formula('~', assumption)), {step1})
+    step4 = prover.add_mp(Formula('~', assumption), step2, step3)
+    return prover.qed()

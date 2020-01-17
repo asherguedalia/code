@@ -470,7 +470,26 @@ def russell_paradox_proof(print_as_proof_forms: bool = False) -> Proof:
     """
     prover = Prover({COMPREHENSION_AXIOM}, print_as_proof_forms)
     # Task 10.13
+
+    ass1 = "Ax[((In(x,y)->~In(x,x))&(~In(x,x)->In(x,y)))]"
+    ass2 = "((In(y,y)->~In(y,y))&(~In(y,y)->In(y,y)))"
+    form1 = "(" + ass1 + "->" + ass2 + ")"
+    dic = {"c":"y", "x":"x", "R": "((In(_,y)->~In(_,_))&(~In(_,_)->In(_,y))))"}
+    step1 = prover.add_instantiated_assumption(form1, prover.UI,dic)
+
+    form2 = "(((In(y,y)->~In(y,y))&(~In(y,y)->In(y,y)))->(z=z&~z=z))"
+    step2 = prover.add_tautology(form2)
+
+    form3 = "Ey[Ax[((In(x,y)->~In(x,x))&(~In(x,x)->In(x,y)))]]"
+    step3 = prover.add_instantiated_assumption(form3, COMPREHENSION_AXIOM, {"R": "~In(_,_)"})
+
+    form4 = "(" + ass1 + "->(z=z&~z=z)))"
+    step4 = prover.add_tautological_implication(form4, [step1, step2])
+
+    prover.add_existential_derivation("(z=z&~z=z)))", step3, step4)
+
     return prover.qed()
+
 
 def not_exists_not_implies_all_proof(formula: Formula, variable: str,
                                      print_as_proof_forms: bool = False) -> \
