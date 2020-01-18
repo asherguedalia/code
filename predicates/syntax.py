@@ -716,7 +716,9 @@ class Formula:
             return variables
         # if quantifier --> return predicate's free-variables w/o variable
         if is_quantifier(self.root):
-            return self.predicate.free_variables() - set(self.variable)
+            #print(set(self.variable))
+            #print('returning: ', self.predicate.free_variables() - {self.variable})
+            return self.predicate.free_variables() - {self.variable}
         # if unary --> return first's free variables
         if is_unary(self.root):
             return self.first.free_variables()

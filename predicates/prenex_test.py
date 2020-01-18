@@ -60,6 +60,8 @@ def test_uniquely_rename_quantified_variables(debug=False):
         _test_substitution(formula, result, {})
         assert proof.assumptions == \
             Prover.AXIOMS.union(ADDITIONAL_QUANTIFICATION_AXIOMS)
+        print(proof.conclusion)
+        print(equivalence_of(formula, result))
         assert proof.conclusion == equivalence_of(formula, result)
         assert proof.is_valid()
 

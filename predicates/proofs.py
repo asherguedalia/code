@@ -535,9 +535,11 @@ class Proof:
             """
             assert line_number < len(lines) and lines[line_number] is self
             # Task 9.5
+
             if self.assumption in assumptions:
-                # print('ok so the formula is: ', self.formula)
-                # print('look but the instantiation is: ', self.assumption.instantiate(self.instantiation_map))
+                print('ok so the formula is: ', self.formula)
+                print(self.instantiation_map)
+                print('look but the instantiation is: ', self.assumption.instantiate(self.instantiation_map))
                 if self.formula == self.assumption.instantiate(self.instantiation_map):
                     return True
 

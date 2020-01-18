@@ -9,10 +9,13 @@ from typing import Tuple
 
 from logic_utils import fresh_variable_name_generator
 
+# from code.predicates.syntax import *
+# from code.predicates.proofs import *
+# from code.predicates.prover import *
+
 from predicates.syntax import *
 from predicates.proofs import *
 from predicates.prover import *
-
 #: Additional axioms of quantification for first-order predicate logic.
 ADDITIONAL_QUANTIFICATION_AXIOMS = (
     Schema(Formula.parse('((~Ax[R(x)]->Ex[~R(x)])&(Ex[~R(x)]->~Ax[R(x)]))'),
@@ -161,6 +164,73 @@ def uniquely_rename_quantified_variables(formula: Formula) -> \
         `ADDITIONAL_QUANTIFICATION_AXIOMS`.
     """
     # Task 11.5
+    print('-----this is formula: -----', formula)
+    prover = Prover(set(ADDITIONAL_QUANTIFICATION_AXIOMS) | set(Prover.AXIOMS), False)
+
+    # base case
+    if is_relation(formula.root) or is_equality(formula.root):
+        # so nothing to convert
+        formula_to_prove = equivalence_of(formula, formula)
+        step1 = prover.add_tautology(Formula('->', formula, formula))  # skeleton i assume is of form p -> p
+        step2 = prover.add_tautology(Formula('->', formula, formula))
+        step3 = prover.add_tautological_implication(formula_to_prove, {step1, step2})
+        return formula, prover.qed()
+
+    if is_quantifier(formula.root):
+        #subbed_vars_predicate, p1 = uniquely_rename_quantified_variables(formula.predicate)
+        new_var_name = next(fresh_variable_name_generator)
+        sub_map = {formula.variable: Term(new_var_name)}
+        new_predicate = formula.predicate.substitute(sub_map, set())
+        subbed_vars_predicate, p1 = uniquely_rename_quantified_variables(new_predicate)
+        new_formula = Formula(formula.root, new_var_name, subbed_vars_predicate)
+        formula_to_prove = equivalence_of(new_formula, formula)
+
+        idx_map = {'A': 14, 'E': 15}
+
+        step1 = prover.add_proof(p1.conclusion, p1)
+        print(ADDITIONAL_QUANTIFICATION_AXIOMS[14])
+        step2 = prover.add_instantiated_assumption(Formula('->', p1.conclusion, formula_to_prove),
+                ADDITIONAL_QUANTIFICATION_AXIOMS[idx_map[formula.root]], {'Q': new_formula.predicate.substitute(
+                {str(new_var_name): Term('_')}, set()), 'R': new_formula.predicate.substitute(
+                {str(new_var_name): Term('_')}, set()), 'y': formula.variable, 'x': new_formula.variable})
+        step3 = prover.add_mp(formula_to_prove, step1, step2)
+        # this is retarted but the tester wants the other way around so:
+        step4 = prover.add_tautological_implication(equivalence_of(formula, new_formula), {step3})
+
+        # here i know that the inside is equivellent, so just prove that so is the outside using that
+        # p1 conclusion is that inside is equivelent so use 15 for A and 16 for E
+        return new_formula, prover.qed()
+
+    next(fresh_variable_name_generator)
+
+    if is_unary(formula.root):
+
+        new_formula, proof = uniquely_rename_quantified_variables(formula.first)
+        f = Formula(formula.root, new_formula)
+        step1 = prover.add_proof(proof.conclusion, proof)
+        step2 = prover.add_tautological_implication(equivalence_of(formula, f), {step1})
+        return f, prover.qed()
+
+
+    if is_binary(formula.root):
+        print('here!!!!')
+        new_formula1, proof1 = uniquely_rename_quantified_variables(formula.first)
+        print('here now')
+        new_formula2, proof2 = uniquely_rename_quantified_variables(formula.second)
+        print('finished')
+        f = Formula(formula.root, new_formula1, new_formula2)
+        step1 = prover.add_proof(proof1.conclusion, proof1)
+        print('wait but now here')
+        step2 = prover.add_proof(proof2.conclusion, proof2)
+        print('mafde itt')
+        print(prover._lines[step1])
+        print(prover._lines[step2])
+        print('old formula is', formula)
+        print('new formula is: ', f)
+        print('trying to show: ', equivalence_of(formula, f))
+        prover.add_tautological_implication(equivalence_of(formula, f), {step1, step2})
+        print('but not here')
+        return f, prover.qed()
 
 def pull_out_quantifications_across_negation(formula: Formula) -> \
         Tuple[Formula, Proof]:
@@ -400,3 +470,5 @@ def to_prenex_normal_form(formula: Formula) -> Tuple[Formula, Proof]:
         `ADDITIONAL_QUANTIFICATION_AXIOMS`.
     """
     # Task 11.10
+
+
