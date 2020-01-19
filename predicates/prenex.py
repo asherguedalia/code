@@ -169,75 +169,60 @@ def uniquely_rename_quantified_variables(formula: Formula) -> \
         `ADDITIONAL_QUANTIFICATION_AXIOMS`.
     """
     # Task 11.5
+    def uniquely_rename_quantified_variables(formula: Formula) -> \
+            Tuple[Formula, Proof]:
+        """Converts the given formula to an equivalent formula with uniquely named
+        variables, and proves the equivalence of these two formulas.
 
-    #
-    # print('-----this is formula: -----', formula)
-    # prover = Prover(set(ADDITIONAL_QUANTIFICATION_AXIOMS) | set(Prover.AXIOMS), False)
-    #
-    # # base case
-    # if is_relation(formula.root) or is_equality(formula.root):
-    #     # so nothing to convert
-    #     formula_to_prove = equivalence_of(formula, formula)
-    #     step1 = prover.add_tautology(Formula('->', formula, formula))  # skeleton i assume is of form p -> p
-    #     step2 = prover.add_tautology(Formula('->', formula, formula))
-    #     step3 = prover.add_tautological_implication(formula_to_prove, {step1, step2})
-    #     return formula, prover.qed()
-    #
-    # if is_quantifier(formula.root):
-    #     #subbed_vars_predicate, p1 = uniquely_rename_quantified_variables(formula.predicate)
-    #     new_var_name = next(fresh_variable_name_generator)
-    #     sub_map = {formula.variable: Term(new_var_name)}
-    #     new_predicate = formula.predicate.substitute(sub_map, set())
-    #     subbed_vars_predicate, p1 = uniquely_rename_quantified_variables(new_predicate)
-    #     new_formula = Formula(formula.root, new_var_name, subbed_vars_predicate)
-    #     formula_to_prove = equivalence_of(new_formula, formula)
-    #
-    #     idx_map = {'A': 14, 'E': 15}
-    #
-    #     step1 = prover.add_proof(p1.conclusion, p1)
-    #     print(ADDITIONAL_QUANTIFICATION_AXIOMS[14])
-    #     step2 = prover.add_instantiated_assumption(Formula('->', p1.conclusion, formula_to_prove),
-    #             ADDITIONAL_QUANTIFICATION_AXIOMS[idx_map[formula.root]], {'Q': new_formula.predicate.substitute(
-    #             {str(new_var_name): Term('_')}, set()), 'R': new_formula.predicate.substitute(
-    #             {str(new_var_name): Term('_')}, set()), 'y': formula.variable, 'x': new_formula.variable})
-    #     step3 = prover.add_mp(formula_to_prove, step1, step2)
-    #     # this is retarted but the tester wants the other way around so:
-    #     step4 = prover.add_tautological_implication(equivalence_of(formula, new_formula), {step3})
-    #
-    #     # here i know that the inside is equivellent, so just prove that so is the outside using that
-    #     # p1 conclusion is that inside is equivelent so use 15 for A and 16 for E
-    #     return new_formula, prover.qed()
-    #
-    # next(fresh_variable_name_generator)
-    #
-    # if is_unary(formula.root):
-    #
-    #     new_formula, proof = uniquely_rename_quantified_variables(formula.first)
-    #     f = Formula(formula.root, new_formula)
-    #     step1 = prover.add_proof(proof.conclusion, proof)
-    #     step2 = prover.add_tautological_implication(equivalence_of(formula, f), {step1})
-    #     return f, prover.qed()
-    #
-    #
-    # if is_binary(formula.root):
-    #     print('here!!!!')
-    #     new_formula1, proof1 = uniquely_rename_quantified_variables(formula.first)
-    #     print('here now')
-    #     new_formula2, proof2 = uniquely_rename_quantified_variables(formula.second)
-    #     print('finished')
-    #     f = Formula(formula.root, new_formula1, new_formula2)
-    #     step1 = prover.add_proof(proof1.conclusion, proof1)
-    #     print('wait but now here')
-    #     step2 = prover.add_proof(proof2.conclusion, proof2)
-    #     print('mafde itt')
-    #     print(prover._lines[step1])
-    #     print(prover._lines[step2])
-    #     print('old formula is', formula)
-    #     print('new formula is: ', f)
-    #     print('trying to show: ', equivalence_of(formula, f))
-    #     prover.add_tautological_implication(equivalence_of(formula, f), {step1, step2})
-    #     print('but not here')
-    #     return f, prover.qed()
+        Parameters:
+            formula: formula to convert, which contains no variable names starting
+                with ``z``.
+
+        Returns:
+            A pair. The first element of the pair is a formula equivalent to the
+            given formula, with the exact same structure but with the additional
+            property of having uniquely named variables, obtained by consistently
+            replacing each variable name that is bound in the given formula with a
+            new variable name obtained by calling
+            `next`\ ``(``\ `~logic_utils.fresh_variable_name_generator`\ ``)``. The
+            second element of the pair is a proof of the equivalence of the given
+            formula and the returned formula (i.e., a proof of
+            `equivalence_of`\ ``(``\ `formula`\ ``,``\ `returned_formula`\ ``)``)
+            via `~predicates.prover.Prover.AXIOMS` and
+            `ADDITIONAL_QUANTIFICATION_AXIOMS`.
+        """
+        # Task 11.5
+        prover = Prover(set(ADDITIONAL_QUANTIFICATION_AXIOMS) | set(Prover.AXIOMS), False)
+
+        # base case
+        if is_relation(formula.root) or is_equality(formula.root):
+            # so nothing to convert
+            formula_to_prove = equivalence_of(formula, formula)
+            step1 = prover.add_tautology(Formula('->', formula, formula))  # skeleton i assume is of form p -> p
+            step2 = prover.add_tautology(Formula('->', formula, formula))
+            step3 = prover.add_tautological_implication(formula_to_prove, {step1, step2})
+            return formula, prover.qed()
+
+        if is_quantifier(formula.root):
+            new_var_name = next(fresh_variable_name_generator)
+            sub_map = {formula.variable: Term(new_var_name)}
+
+            subbed_vars_predicate, p1 = uniquely_rename_quantified_variables(formula.predicate)
+            step1 = prover.add_proof(p1.conclusion, p1)
+            my_map = {'R': formula.predicate.substitute({formula.variable: Term('_')}, set()),
+                      'Q': subbed_vars_predicate.substitute({formula.variable: Term('_')}, set()),
+                      'x': formula.variable, 'y': new_var_name}
+
+            new_formula = Formula(formula.root, new_var_name, subbed_vars_predicate.substitute(sub_map, set()))
+            formula_to_prove = equivalence_of(formula, new_formula)
+
+            idx_map = {'A': 14, 'E': 15}
+
+            step1 = prover.add_proof(p1.conclusion, p1)
+            step2 = prover.add_instantiated_assumption(Formula('->', p1.conclusion, formula_to_prove),
+                                                       ADDITIONAL_QUANTIFICATION_AXIOMS[idx_map[formula.root]], my_map)
+            step3 = prover.add_mp(formula_to_prove, step1, step2)
+            return new_formula, prover.qed()
 
 
 def pull_out_quantifications_across_negation(formula: Formula) -> \
@@ -319,7 +304,8 @@ def pull_out_quantifications_across_negation(formula: Formula) -> \
                       "x": first_var}
     form_equiv_not_pred = equivalence_of(formula, change_quant_not_pred)
     second_ass_index = prover.add_instantiated_assumption(form_equiv_not_pred,
-                                                          ADDITIONAL_QUANTIFICATION_AXIOMS[0 if new_quant == 'E' else 1],
+                                                          ADDITIONAL_QUANTIFICATION_AXIOMS[
+                                                              0 if new_quant == 'E' else 1],
                                                           second_sub_map)
     # add final equivalence
     prover.add_tautological_implication(equivalence_of(formula, change_quant_pred), [mp_index, second_ass_index])
@@ -372,6 +358,71 @@ Formula) -> \
     assert has_uniquely_named_variables(formula)
     assert is_binary(formula.root)
     # Task 11.7.1
+    prover = Prover(Prover.AXIOMS.union(ADDITIONAL_QUANTIFICATION_AXIOMS))
+    # if isn't quantifier --> just add tautology
+    if not is_quantifier(formula.first.root):
+        prover.add_tautology(equivalence_of(formula, formula))
+        return formula, prover.qed()
+    # init shits
+    first_var = formula.first.variable
+    first_pred = formula.first.predicate
+    first_quant = formula.first.root
+    no_pred = Formula(formula.root, first_pred, formula.second)
+    pred, proof = pull_out_quantifications_from_left_across_binary_operator(no_pred)
+    # prove quant update
+    update_quant_proof = prover.add_proof(proof.conclusion, proof)
+    # get quant and axiom
+    axiom_num, first_quant = get_quant_and_axiom_task_7_1(formula.root, first_quant)
+    # start adding to proof
+    conc_then_equiv = Formula('->', proof.conclusion,
+                              equivalence_of(Formula(first_quant, first_var, no_pred),
+                                             Formula(first_quant, first_var, pred)))
+    # create sub map for first assump
+    first_sub_map = {'R': str(no_pred.substitute({first_var: Term('_')})),
+                     'Q': str(pred.substitute({first_var: Term('_')})), 'x': first_var,
+                     'y': first_var}
+    fist_ass_index = prover.add_instantiated_assumption(conc_then_equiv,
+                                                        ADDITIONAL_QUANTIFICATION_AXIOMS[
+                                                            14 if first_quant == 'A' else 15],
+                                                        first_sub_map)
+    mp_index = prover.add_mp(equivalence_of(Formula(first_quant, first_var, no_pred),
+                                            Formula(first_quant, first_var, pred)), update_quant_proof,
+                             fist_ass_index)
+    # create sub map for second assump
+    second_sub_map = {'R': str(first_pred.substitute({first_var: Term('_')})),
+                      'x': first_var, 'Q': str(formula.second)}
+    form_equiv_no_pred = equivalence_of(formula, Formula(first_quant, first_var, no_pred))
+    second_ass_index = prover.add_instantiated_assumption(form_equiv_no_pred,
+                                                          ADDITIONAL_QUANTIFICATION_AXIOMS[axiom_num], second_sub_map)
+    # add final equivalence
+    prover.add_tautological_implication(equivalence_of(formula, Formula(first_quant, first_var, pred)),
+                                        [mp_index, second_ass_index])
+    return Formula(first_quant, first_var, pred), prover.qed()
+
+
+def get_quant_and_axiom_task_7_1(root, quant):
+    # should never return -1, just for debugging
+    # axiom_num = -1
+    # if op is '->' --> switch quantifier, get appropriate axiom
+    if root == '->':
+        if quant == 'A':
+            quant = 'E'
+            axiom_num = 10
+        else:
+            quant = 'A'
+            axiom_num = 11
+    # elif '&' or '|' --> keep quant just update axiom
+    elif root == '|':
+        if quant == 'A':
+            axiom_num = 6
+        else:
+            axiom_num = 7
+    else:
+        if quant == 'A':
+            axiom_num = 2
+        else:
+            axiom_num = 3
+    return axiom_num, quant
 
 
 def pull_out_quantifications_from_right_across_binary_operator(formula:
@@ -420,6 +471,51 @@ Formula) -> \
     assert has_uniquely_named_variables(formula)
     assert is_binary(formula.root)
     # Task 11.7.2
+    prover = Prover(Prover.AXIOMS.union(ADDITIONAL_QUANTIFICATION_AXIOMS))
+    # if isn't quantifier --> just add tautology
+    if not is_quantifier(formula.second.root):
+        prover.add_tautology(equivalence_of(formula, formula))
+        return formula, prover.qed()
+    # init shits
+    quant = formula.second.root
+    second_pred = formula.second.predicate
+    second_var = formula.second.variable
+    axiom_num = get_axiom_task_7_2(formula.root, quant)
+    no_pred = Formula(formula.root, formula.first, second_pred)
+    pred, proof = pull_out_quantifications_from_right_across_binary_operator(no_pred)
+    # start adding to proof
+    update_conc_proof = prover.add_proof(proof.conclusion, proof)
+    conc_then_equiv = Formula("->", proof.conclusion, equivalence_of(Formula(quant, second_var, no_pred),
+                                                                     Formula(quant, second_var, pred)))
+    first_sub_map = {'R': str(no_pred.substitute({second_var: Term("_")})),
+                     'Q': str(pred.substitute({second_var: Term("_")})), "x": second_var, "y": second_var}
+
+    first_ass_index = prover.add_instantiated_assumption(conc_then_equiv,
+                                                         ADDITIONAL_QUANTIFICATION_AXIOMS[14 if quant == "A" else 15],
+                                                         first_sub_map)
+
+    mp_index = prover.add_mp(equivalence_of(Formula(quant, second_var, no_pred),
+                                            Formula(quant, second_var, pred)), update_conc_proof, first_ass_index)
+
+    second_sub_map = {'R': str(second_pred.substitute({formula.second.variable: Term("_")})), "x": second_var,
+                      "Q": str(formula.first)}
+    form_no_pred = equivalence_of(formula, Formula(quant, second_var, no_pred))
+    second_ass_index = prover.add_instantiated_assumption(form_no_pred,
+                                                          ADDITIONAL_QUANTIFICATION_AXIOMS[axiom_num], second_sub_map)
+
+    prover.add_tautological_implication(equivalence_of(formula, Formula(quant, second_var, pred)),
+                                        [mp_index, second_ass_index])
+
+    return Formula(quant, second_var, pred), prover.qed()
+
+
+def get_axiom_task_7_2(root, quant):
+    if root == '->':
+        return 12 if quant == 'A' else 13
+    elif root == '|':
+        return 8 if quant == 'A' else 9
+    else:
+        return 4 if quant == 'A' else 5
 
 
 def pull_out_quantifications_across_binary_operator(formula: Formula) -> \
