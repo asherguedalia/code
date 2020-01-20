@@ -90,6 +90,7 @@ def is_primitively_closed(sentences: AbstractSet[Formula]) -> bool:
     return True
 
 
+
 def is_universally_closed(sentences: AbstractSet[Formula]) -> bool:
     """Checks whether the given set of prenex-normal-form sentences is
     universally closed.
@@ -108,6 +109,18 @@ def is_universally_closed(sentences: AbstractSet[Formula]) -> bool:
         assert is_in_prenex_normal_form(sentence) and \
                len(sentence.free_variables()) == 0
     # Task 12.1.2
+    constants = get_constants(sentences)
+    for sentence in sentences:
+
+        if sentence.root == 'A':
+            variable = sentence.variable
+            for const in constants:
+                f = sentence.predicate.substitute({variable: Term(const)}, set())
+                # now we need to see if f is in sentences as any part
+                if f not in sentences:
+                    return False
+    return True
+
 
 def is_existentially_closed(sentences: AbstractSet[Formula]) -> bool:
     """Checks whether the given set of prenex-normal-form sentences is
@@ -127,6 +140,20 @@ def is_existentially_closed(sentences: AbstractSet[Formula]) -> bool:
         assert is_in_prenex_normal_form(sentence) and \
                len(sentence.free_variables()) == 0
     # Task 12.1.3
+    constants = get_constants(sentences)
+    for sentence in sentences:
+        if sentence.root == 'E':
+            ans = False
+            variable = sentence.variable
+            for const in constants:
+                f = sentence.predicate.substitute({variable: Term(const)}, set())
+                # now we need to see if f is in sentences as any part
+                if f in sentences:
+                    ans = True
+            if not ans:
+                return False
+
+    return True
 
 def find_unsatisfied_quantifier_free_sentence(sentences: Container[Formula],
                                               model: Model[str],
