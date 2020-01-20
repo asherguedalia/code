@@ -205,8 +205,10 @@ def find_unsatisfied_quantifier_free_sentence(sentences: Container[Formula],
     for c in model.universe:
         pred = unsatisfied.predicate.substitute({unsatisfied.variable: Term(c)}, set())
         if not model.evaluate_formula(pred) and pred in sentences:
-            # otherwise it is satisfied so nothing to look into
-            # in this case because it is closed set it has to also have somewhere this formula in a way thats not satisfied
+            # otherwise it is satisfied so nothing to look into or its is not in sentences in that case it was an
+            # existential quantifier so only one instantiation needed to be
+            # in this case because it is closed set it has to also have somewhere this formula in a way thats not
+            # satisfied
             return find_unsatisfied_quantifier_free_sentence(sentences, model, pred)
 
 def get_primitives(quantifier_free: Formula) -> Set[Formula]:
@@ -226,6 +228,14 @@ def get_primitives(quantifier_free: Formula) -> Set[Formula]:
     """
     assert is_quantifier_free(quantifier_free)
     # Task 12.3.1
+    if is_relation(quantifier_free.root) or is_equality(quantifier_free.root):
+        return {quantifier_free}
+    if is_unary(quantifier_free.root):
+        return get_primitives(quantifier_free.first)
+    if is_binary(quantifier_free.root):
+        return get_primitives(quantifier_free.first) | get_primitives(quantifier_free.second)
+    raise Exception('i mean where the *** should i really even start')
+
 
 def model_or_inconsistency(sentences: AbstractSet[Formula]) -> \
         Union[Model[str], Proof]:
@@ -242,7 +252,45 @@ def model_or_inconsistency(sentences: AbstractSet[Formula]) -> \
         `~predicates.prover.Prover.AXIOMS`.
     """    
     assert is_closed(sentences)
+
     # Task 12.3.2
+    constants = get_constants(sentences)
+    constant_meanings = {k: k for k in constants}
+    relation_meanings = {}
+    for sentence in sentences:
+        if is_relation(sentence.root):
+            if sentence.root in relation_meanings:
+                relation_meanings[sentence.root].add(tuple([str(x) for x in sentence.arguments]))
+            else:
+                relation_meanings[sentence.root] = {tuple([str(x) for x in sentence.arguments])}
+        if is_unary(sentence.root):
+            if is_relation(sentence.first.root):
+                # so for now i understand to do nothing in this part but if something dont work id look into it here
+                pass
+    model = Model(universe=constants, constant_meanings=constant_meanings,
+                  relation_meanings=relation_meanings, function_meanings={})
+
+    for sentence in sentences:
+        if not model.evaluate_formula(sentence):
+            # so its inconsistent
+            quantifier_free = find_unsatisfied_quantifier_free_sentence(sentences, model, sentence)
+            primitive_sentences = get_primitives(quantifier_free)
+            prover = Prover(set(Prover.AXIOMS) | sentences, False)
+            step0 = prover.add_assumption(quantifier_free)
+            steps = {step0}
+            for f in primitive_sentences:
+                # add f or its negation whichever one is in sentences
+                if f in sentences:
+                    steps.add(prover.add_assumption(f))
+                else:
+                    assert Formula('~', f) in sentences  # maybe im creating a ~~ sitution, in that case check for it
+                    steps.add(prover.add_assumption(Formula('~', f)))
+            contradiction = Formula('&', quantifier_free, Formula('~', quantifier_free))
+            prover.add_tautological_implication(contradiction, steps)
+            return prover.qed()
+    return model
+
+
 
 def combine_contradictions(proof_from_affirmation: Proof,
                            proof_from_negation: Proof) -> Proof:
