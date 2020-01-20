@@ -164,7 +164,6 @@ def uniquely_rename_quantified_variables(formula: Formula) -> \
         `ADDITIONAL_QUANTIFICATION_AXIOMS`.
     """
     # Task 11.5
-    print('-----this is formula: -----', formula)
     prover = Prover(set(ADDITIONAL_QUANTIFICATION_AXIOMS) | set(Prover.AXIOMS), False)
 
     # base case
@@ -177,31 +176,27 @@ def uniquely_rename_quantified_variables(formula: Formula) -> \
         return formula, prover.qed()
 
     if is_quantifier(formula.root):
-        #subbed_vars_predicate, p1 = uniquely_rename_quantified_variables(formula.predicate)
+
         new_var_name = next(fresh_variable_name_generator)
         sub_map = {formula.variable: Term(new_var_name)}
-        new_predicate = formula.predicate.substitute(sub_map, set())
-        subbed_vars_predicate, p1 = uniquely_rename_quantified_variables(new_predicate)
-        new_formula = Formula(formula.root, new_var_name, subbed_vars_predicate)
-        formula_to_prove = equivalence_of(new_formula, formula)
+
+        subbed_vars_predicate, p1 = uniquely_rename_quantified_variables(formula.predicate)
+        step1 = prover.add_proof(p1.conclusion, p1)
+        my_map = {'R': formula.predicate.substitute({formula.variable: Term('_')}, set()),
+                  'Q': subbed_vars_predicate.substitute({formula.variable: Term('_')}, set()),
+                  'x': formula.variable, 'y': new_var_name}
+
+        new_formula = Formula(formula.root, new_var_name, subbed_vars_predicate.substitute(sub_map, set()))
+        formula_to_prove = equivalence_of(formula, new_formula)
 
         idx_map = {'A': 14, 'E': 15}
 
         step1 = prover.add_proof(p1.conclusion, p1)
-        print(ADDITIONAL_QUANTIFICATION_AXIOMS[14])
         step2 = prover.add_instantiated_assumption(Formula('->', p1.conclusion, formula_to_prove),
-                ADDITIONAL_QUANTIFICATION_AXIOMS[idx_map[formula.root]], {'Q': new_formula.predicate.substitute(
-                {str(new_var_name): Term('_')}, set()), 'R': new_formula.predicate.substitute(
-                {str(new_var_name): Term('_')}, set()), 'y': formula.variable, 'x': new_formula.variable})
+                ADDITIONAL_QUANTIFICATION_AXIOMS[idx_map[formula.root]], my_map)
         step3 = prover.add_mp(formula_to_prove, step1, step2)
-        # this is retarted but the tester wants the other way around so:
-        step4 = prover.add_tautological_implication(equivalence_of(formula, new_formula), {step3})
-
-        # here i know that the inside is equivellent, so just prove that so is the outside using that
-        # p1 conclusion is that inside is equivelent so use 15 for A and 16 for E
         return new_formula, prover.qed()
 
-    next(fresh_variable_name_generator)
 
     if is_unary(formula.root):
 
@@ -213,24 +208,14 @@ def uniquely_rename_quantified_variables(formula: Formula) -> \
 
 
     if is_binary(formula.root):
-        print('here!!!!')
         new_formula1, proof1 = uniquely_rename_quantified_variables(formula.first)
-        print('here now')
         new_formula2, proof2 = uniquely_rename_quantified_variables(formula.second)
-        print('finished')
         f = Formula(formula.root, new_formula1, new_formula2)
         step1 = prover.add_proof(proof1.conclusion, proof1)
-        print('wait but now here')
         step2 = prover.add_proof(proof2.conclusion, proof2)
-        print('mafde itt')
-        print(prover._lines[step1])
-        print(prover._lines[step2])
-        print('old formula is', formula)
-        print('new formula is: ', f)
-        print('trying to show: ', equivalence_of(formula, f))
         prover.add_tautological_implication(equivalence_of(formula, f), {step1, step2})
-        print('but not here')
-        return f, prover.qed()
+        prf = prover.qed()
+        return f, prf
 
 def pull_out_quantifications_across_negation(formula: Formula) -> \
         Tuple[Formula, Proof]:
