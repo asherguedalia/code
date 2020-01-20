@@ -169,60 +169,58 @@ def uniquely_rename_quantified_variables(formula: Formula) -> \
         `ADDITIONAL_QUANTIFICATION_AXIOMS`.
     """
     # Task 11.5
-    def uniquely_rename_quantified_variables(formula: Formula) -> \
-            Tuple[Formula, Proof]:
-        """Converts the given formula to an equivalent formula with uniquely named
-        variables, and proves the equivalence of these two formulas.
+    prover = Prover(set(ADDITIONAL_QUANTIFICATION_AXIOMS) | set(Prover.AXIOMS), False)
 
-        Parameters:
-            formula: formula to convert, which contains no variable names starting
-                with ``z``.
+    # base case
+    if is_relation(formula.root) or is_equality(formula.root):
+        # so nothing to convert
+        formula_to_prove = equivalence_of(formula, formula)
+        step1 = prover.add_tautology(Formula('->', formula, formula))  # skeleton i assume is of form p -> p
+        step2 = prover.add_tautology(Formula('->', formula, formula))
+        step3 = prover.add_tautological_implication(formula_to_prove, {step1, step2})
+        return formula, prover.qed()
 
-        Returns:
-            A pair. The first element of the pair is a formula equivalent to the
-            given formula, with the exact same structure but with the additional
-            property of having uniquely named variables, obtained by consistently
-            replacing each variable name that is bound in the given formula with a
-            new variable name obtained by calling
-            `next`\ ``(``\ `~logic_utils.fresh_variable_name_generator`\ ``)``. The
-            second element of the pair is a proof of the equivalence of the given
-            formula and the returned formula (i.e., a proof of
-            `equivalence_of`\ ``(``\ `formula`\ ``,``\ `returned_formula`\ ``)``)
-            via `~predicates.prover.Prover.AXIOMS` and
-            `ADDITIONAL_QUANTIFICATION_AXIOMS`.
-        """
-        # Task 11.5
-        prover = Prover(set(ADDITIONAL_QUANTIFICATION_AXIOMS) | set(Prover.AXIOMS), False)
+    if is_quantifier(formula.root):
 
-        # base case
-        if is_relation(formula.root) or is_equality(formula.root):
-            # so nothing to convert
-            formula_to_prove = equivalence_of(formula, formula)
-            step1 = prover.add_tautology(Formula('->', formula, formula))  # skeleton i assume is of form p -> p
-            step2 = prover.add_tautology(Formula('->', formula, formula))
-            step3 = prover.add_tautological_implication(formula_to_prove, {step1, step2})
-            return formula, prover.qed()
+        new_var_name = next(fresh_variable_name_generator)
+        sub_map = {formula.variable: Term(new_var_name)}
 
-        if is_quantifier(formula.root):
-            new_var_name = next(fresh_variable_name_generator)
-            sub_map = {formula.variable: Term(new_var_name)}
+        subbed_vars_predicate, p1 = uniquely_rename_quantified_variables(formula.predicate)
+        step1 = prover.add_proof(p1.conclusion, p1)
+        my_map = {'R': formula.predicate.substitute({formula.variable: Term('_')}, set()),
+                  'Q': subbed_vars_predicate.substitute({formula.variable: Term('_')}, set()),
+                  'x': formula.variable, 'y': new_var_name}
 
-            subbed_vars_predicate, p1 = uniquely_rename_quantified_variables(formula.predicate)
-            step1 = prover.add_proof(p1.conclusion, p1)
-            my_map = {'R': formula.predicate.substitute({formula.variable: Term('_')}, set()),
-                      'Q': subbed_vars_predicate.substitute({formula.variable: Term('_')}, set()),
-                      'x': formula.variable, 'y': new_var_name}
+        new_formula = Formula(formula.root, new_var_name, subbed_vars_predicate.substitute(sub_map, set()))
+        formula_to_prove = equivalence_of(formula, new_formula)
 
-            new_formula = Formula(formula.root, new_var_name, subbed_vars_predicate.substitute(sub_map, set()))
-            formula_to_prove = equivalence_of(formula, new_formula)
+        idx_map = {'A': 14, 'E': 15}
 
-            idx_map = {'A': 14, 'E': 15}
+        step1 = prover.add_proof(p1.conclusion, p1)
+        step2 = prover.add_instantiated_assumption(Formula('->', p1.conclusion, formula_to_prove),
+                ADDITIONAL_QUANTIFICATION_AXIOMS[idx_map[formula.root]], my_map)
+        step3 = prover.add_mp(formula_to_prove, step1, step2)
+        return new_formula, prover.qed()
 
-            step1 = prover.add_proof(p1.conclusion, p1)
-            step2 = prover.add_instantiated_assumption(Formula('->', p1.conclusion, formula_to_prove),
-                                                       ADDITIONAL_QUANTIFICATION_AXIOMS[idx_map[formula.root]], my_map)
-            step3 = prover.add_mp(formula_to_prove, step1, step2)
-            return new_formula, prover.qed()
+
+    if is_unary(formula.root):
+
+        new_formula, proof = uniquely_rename_quantified_variables(formula.first)
+        f = Formula(formula.root, new_formula)
+        step1 = prover.add_proof(proof.conclusion, proof)
+        step2 = prover.add_tautological_implication(equivalence_of(formula, f), {step1})
+        return f, prover.qed()
+
+
+    if is_binary(formula.root):
+        new_formula1, proof1 = uniquely_rename_quantified_variables(formula.first)
+        new_formula2, proof2 = uniquely_rename_quantified_variables(formula.second)
+        f = Formula(formula.root, new_formula1, new_formula2)
+        step1 = prover.add_proof(proof1.conclusion, proof1)
+        step2 = prover.add_proof(proof2.conclusion, proof2)
+        prover.add_tautological_implication(equivalence_of(formula, f), {step1, step2})
+        prf = prover.qed()
+        return f, prf
 
 
 def pull_out_quantifications_across_negation(formula: Formula) -> \
