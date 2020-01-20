@@ -194,6 +194,21 @@ def find_unsatisfied_quantifier_free_sentence(sentences: Container[Formula],
     assert not model.evaluate_formula(unsatisfied)
     # Task 12.2
 
+    # its in prenex normal form and all bound variables so lets start instatiaitonto find a formula
+    # that is not satisfied
+
+    if not is_quantifier(unsatisfied.root):
+        # so it itself is a legal answer
+        return unsatisfied
+
+    # if here so it is quantified
+    for c in model.universe:
+        pred = unsatisfied.predicate.substitute({unsatisfied.variable: Term(c)}, set())
+        if not model.evaluate_formula(pred) and pred in sentences:
+            # otherwise it is satisfied so nothing to look into
+            # in this case because it is closed set it has to also have somewhere this formula in a way thats not satisfied
+            return find_unsatisfied_quantifier_free_sentence(sentences, model, pred)
+
 def get_primitives(quantifier_free: Formula) -> Set[Formula]:
     """Finds all primitive subformulas of the given quantifier-free formula.
 
