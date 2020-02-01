@@ -15,6 +15,7 @@ from predicates.deduction import *
 from predicates.prenex import *
 from itertools import product
 
+
 # from code.predicates.syntax import *
 # from code.predicates.semantics import *
 # from code.predicates.proofs import *
@@ -36,6 +37,7 @@ def get_constants(formulas: AbstractSet[Formula]) -> Set[str]:
         constants.update(formula.constants())
     return constants
 
+
 def is_closed(sentences: AbstractSet[Formula]) -> bool:
     """Checks whether the given set of prenex-normal-form sentences is closed.
 
@@ -52,6 +54,7 @@ def is_closed(sentences: AbstractSet[Formula]) -> bool:
     return is_primitively_closed(sentences) and \
            is_universally_closed(sentences) and \
            is_existentially_closed(sentences)
+
 
 def is_primitively_closed(sentences: AbstractSet[Formula]) -> bool:
     """Checks whether the given set of prenex-normal-form sentences is
@@ -88,7 +91,6 @@ def is_primitively_closed(sentences: AbstractSet[Formula]) -> bool:
                 return False
 
     return True
-
 
 
 def is_universally_closed(sentences: AbstractSet[Formula]) -> bool:
@@ -155,6 +157,7 @@ def is_existentially_closed(sentences: AbstractSet[Formula]) -> bool:
 
     return True
 
+
 def find_unsatisfied_quantifier_free_sentence(sentences: Container[Formula],
                                               model: Model[str],
                                               unsatisfied: Formula) -> Formula:
@@ -211,6 +214,7 @@ def find_unsatisfied_quantifier_free_sentence(sentences: Container[Formula],
             # satisfied
             return find_unsatisfied_quantifier_free_sentence(sentences, model, pred)
 
+
 def get_primitives(quantifier_free: Formula) -> Set[Formula]:
     """Finds all primitive subformulas of the given quantifier-free formula.
 
@@ -250,7 +254,7 @@ def model_or_inconsistency(sentences: AbstractSet[Formula]) -> \
         A model in which all of the given sentences hold if such exists,
         otherwise a valid proof of  a contradiction from the given formulas via
         `~predicates.prover.Prover.AXIOMS`.
-    """    
+    """
     assert is_closed(sentences)
 
     # Task 12.3.2
@@ -289,7 +293,6 @@ def model_or_inconsistency(sentences: AbstractSet[Formula]) -> \
             prover.add_tautological_implication(contradiction, steps)
             return prover.qed()
     return model
-
 
 
 def combine_contradictions(proof_from_affirmation: Proof,
@@ -333,6 +336,56 @@ def combine_contradictions(proof_from_affirmation: Proof,
                                                 negated_assumption}):
         assert len(assumption.formula.free_variables()) == 0
     # Task 12.4
+    # init shits
+    common_assumptions = proof_from_affirmation.assumptions.intersection(
+        proof_from_negation.assumptions)
+    new_conclusion = proof_from_negation.conclusion
+    # prove negated assumption
+    affirmed_assumption = list(proof_from_affirmation.assumptions.difference(common_assumptions))[0]
+    prove_negation = proof_by_way_of_contradiction(proof_from_affirmation, affirmed_assumption.formula)
+    new_lines = list(prove_negation.lines)
+    # prove conc using negated-assumption-proof
+    negation_form = prove_negation.conclusion
+    num_lines_in_other = len(new_lines)
+    neg_form_line_num = -1
+    for i, line in enumerate(proof_from_negation.lines):
+        new_line = line_to_new_line(line, i, num_lines_in_other, negation_form, neg_form_line_num)
+        if type(new_line) == int:
+            # num_lines_in_other -= 1
+            neg_form_line_num = i
+            continue
+        new_lines.append(new_line)
+    return Proof(common_assumptions, new_conclusion, new_lines)
+
+
+def line_to_new_line(line, line_num, num_lines_in_other, negation_form, neg_form_line_num):
+    if type(line) == Proof.UGLine:
+        pred_line_num = get_line_num(line.predicate_line_number, num_lines_in_other, neg_form_line_num)
+        new_line = Proof.UGLine(line.formula, pred_line_num)
+    elif type(line) == Proof.MPLine:
+        ant_line_num = get_line_num(line.antecedent_line_number, num_lines_in_other, neg_form_line_num)
+        cond_line_num = get_line_num(line.conditional_line_number, num_lines_in_other, neg_form_line_num)
+        new_line = Proof.MPLine(line.formula, ant_line_num, cond_line_num)
+    elif type(line) == Proof.TautologyLine:
+        new_line = line
+    elif type(line) == Proof.AssumptionLine:
+        if line.formula == negation_form:
+            return line_num
+        else:
+            new_line = line
+    return new_line
+
+
+def get_line_num(line_num, num_lines_in_other, neg_form_line_num):
+    if neg_form_line_num == -1:
+        return line_num + num_lines_in_other
+    if line_num == neg_form_line_num:
+        return num_lines_in_other - 1
+    if line_num < neg_form_line_num:
+        return line_num + num_lines_in_other
+    else:  # line_num > neg_form_line
+        return line_num + num_lines_in_other - 1
+
 
 def eliminate_universal_instantiation_assumption(proof: Proof, constant: str,
                                                  instantiation: Formula,
@@ -366,6 +419,7 @@ def eliminate_universal_instantiation_assumption(proof: Proof, constant: str,
         assert len(assumption.formula.free_variables()) == 0
     # Task 12.5
 
+
 def universal_closure_step(sentences: AbstractSet[Formula]) -> Set[Formula]:
     """Augments the given sentences with all universal instantiations of each
     universally quantified sentence from these sentences, with respect to all
@@ -385,6 +439,7 @@ def universal_closure_step(sentences: AbstractSet[Formula]) -> Set[Formula]:
         assert is_in_prenex_normal_form(sentence) and \
                len(sentence.free_variables()) == 0
     # Task 12.6
+
 
 def replace_constant(proof: Proof, constant: str, variable: str = 'zz') -> \
         Proof:
@@ -412,6 +467,7 @@ def replace_constant(proof: Proof, constant: str, variable: str = 'zz') -> \
     for line in proof.lines:
         assert variable not in line.formula.variables()
     # Task 12.7.1
+
 
 def eliminate_existential_witness_assumption(proof: Proof, constant: str,
                                              witness: Formula,
@@ -450,6 +506,7 @@ def eliminate_existential_witness_assumption(proof: Proof, constant: str,
     for assumption in proof.assumptions.difference({Schema(witness)}):
         assert constant not in assumption.formula.constants()
     # Task 12.7.2
+
 
 def existential_closure_step(sentences: AbstractSet[Formula]) -> Set[Formula]:
     """Augments the given sentences with an existential witness that uses a new
